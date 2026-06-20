@@ -1,0 +1,565 @@
+{
+  "point_free": {
+    "commands": [
+      "P=(1,2)"
+    ],
+    "asserts": []
+  },
+  "point_on_segment": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "P=A+0.35*(B-A)"
+    ],
+    "asserts": []
+  },
+  "point_on_ray_beyond": {
+    "commands": [
+      "P=(0,0)",
+      "Q=(2,0)",
+      "F=P+1.6*(Q-P)"
+    ],
+    "asserts": []
+  },
+  "point_on_object": {
+    "commands": [
+      "O=(0,0)",
+      "c=Circle(O,3)",
+      "P=Point(c)"
+    ],
+    "asserts": []
+  },
+  "midpoint": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,2)",
+      "M=Midpoint(A,B)"
+    ],
+    "asserts": []
+  },
+  "segment": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,0)",
+      "s=Segment(A,B)"
+    ],
+    "asserts": []
+  },
+  "line": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,1)",
+      "l=Line(A,B)"
+    ],
+    "asserts": []
+  },
+  "ray": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,1)",
+      "r=Ray(A,B)"
+    ],
+    "asserts": []
+  },
+  "distance": {
+    "commands": [
+      "A=(0,0)",
+      "B=(3,4)",
+      "d=Distance(A,B)"
+    ],
+    "asserts": []
+  },
+  "parallel_through": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,0)",
+      "l=Line(A,B)",
+      "P=(1,3)",
+      "d=Line(P,l)"
+    ],
+    "asserts": [
+      "AreParallel(d,l)"
+    ]
+  },
+  "perpendicular_through": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,0)",
+      "l=Line(A,B)",
+      "P=(1,3)",
+      "d=PerpendicularLine(P,l)"
+    ],
+    "asserts": [
+      "ArePerpendicular(d,l)"
+    ]
+  },
+  "foot_of_perpendicular": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "l=Line(A,B)",
+      "P=(2,4)",
+      "H=ClosestPoint(l,P)",
+      "PH=Segment(P,H)"
+    ],
+    "asserts": [
+      "ArePerpendicular(Line(P,H),l)"
+    ]
+  },
+  "perpendicular_bisector": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "d=PerpendicularBisector(A,B)"
+    ],
+    "asserts": []
+  },
+  "angle_bisector": {
+    "commands": [
+      "A=(4,0)",
+      "B=(0,0)",
+      "C=(3,3)",
+      "d=AngleBisector(A,B,C)"
+    ],
+    "asserts": []
+  },
+  "intersect": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,4)",
+      "l1=Line(A,B)",
+      "C=(0,4)",
+      "D=(4,0)",
+      "l2=Line(C,D)",
+      "P=Intersect(l1,l2)"
+    ],
+    "asserts": []
+  },
+  "triangle": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)"
+    ],
+    "asserts": []
+  },
+  "triangle_equilateral": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=Rotate(B,60°,A)",
+      "tri=Polygon(A,B,C)"
+    ],
+    "asserts": [
+      "AreEqual(Distance(A,B),Distance(B,C))",
+      "AreEqual(Distance(A,B),Distance(A,C))"
+    ]
+  },
+  "triangle_isosceles": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "aux1=Midpoint(A,B)",
+      "aux2=UnitPerpendicularVector(Vector(A,B))",
+      "C=aux1+5*aux2",
+      "tri=Polygon(A,B,C)"
+    ],
+    "asserts": [
+      "AreEqual(Distance(C,A),Distance(C,B))"
+    ]
+  },
+  "triangle_right": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "aux1=UnitPerpendicularVector(Vector(A,B))",
+      "C=A+4*aux1",
+      "tri=Polygon(A,B,C)"
+    ],
+    "asserts": [
+      "ArePerpendicular(Line(A,B),Line(A,C))"
+    ]
+  },
+  "altitude": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "aux1=PerpendicularLine(A,Line(B,C))",
+      "H=Intersect(aux1,Line(B,C))",
+      "hA=Segment(A,H)"
+    ],
+    "asserts": [
+      "ArePerpendicular(aux1,Line(B,C))"
+    ]
+  },
+  "median": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "M=Midpoint(B,C)",
+      "mA=Segment(A,M)"
+    ],
+    "asserts": []
+  },
+  "angle_bisector_seg": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "aux1=AngleBisector(B,A,C)",
+      "D=Intersect(aux1,Line(B,C))",
+      "dA=Segment(A,D)"
+    ],
+    "asserts": []
+  },
+  "midsegment": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "M=Midpoint(A,B)",
+      "N=Midpoint(A,C)",
+      "mid=Segment(M,N)"
+    ],
+    "asserts": [
+      "AreParallel(Line(M,N),Line(B,C))"
+    ]
+  },
+  "centroid": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "G=Centroid(Polygon(A,B,C))"
+    ],
+    "asserts": []
+  },
+  "orthocenter": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "aux1=PerpendicularLine(A,Line(B,C))",
+      "aux2=PerpendicularLine(B,Line(A,C))",
+      "H=Intersect(aux1,aux2)"
+    ],
+    "asserts": []
+  },
+  "incenter": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "aux1=AngleBisector(B,A,C)",
+      "aux2=AngleBisector(A,B,C)",
+      "I=Intersect(aux1,aux2)"
+    ],
+    "asserts": []
+  },
+  "circumcenter": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "aux1=PerpendicularBisector(A,B)",
+      "aux2=PerpendicularBisector(B,C)",
+      "O=Intersect(aux1,aux2)"
+    ],
+    "asserts": []
+  },
+  "circle_center_radius": {
+    "commands": [
+      "O=(0,0)",
+      "c=Circle(O,3)"
+    ],
+    "asserts": []
+  },
+  "circle_center_point": {
+    "commands": [
+      "O=(0,0)",
+      "A=(3,0)",
+      "c=Circle(O,A)"
+    ],
+    "asserts": []
+  },
+  "circle_through_3": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "c=Circle(A,B,C)"
+    ],
+    "asserts": []
+  },
+  "circumcircle": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "cc=Circle(A,B,C)",
+      "O=Center(cc)"
+    ],
+    "asserts": [
+      "AreEqual(Distance(A,O),Radius(cc))"
+    ]
+  },
+  "incircle": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(2,5)",
+      "tri=Polygon(A,B,C)",
+      "aux1=AngleBisector(B,A,C)",
+      "aux2=AngleBisector(A,B,C)",
+      "I=Intersect(aux1,aux2)",
+      "aux3=Distance(I,Line(A,B))",
+      "ic=Circle(I,aux3)"
+    ],
+    "asserts": [
+      "IsTangent(Line(A,B),ic)"
+    ]
+  },
+  "semicircle": {
+    "commands": [
+      "M=(-5,0)",
+      "N=(5,0)",
+      "s=Semicircle(M,N)",
+      "O=Midpoint(M,N)"
+    ],
+    "asserts": []
+  },
+  "arc": {
+    "commands": [
+      "O=(0,0)",
+      "A=(5,0)",
+      "B=(0,5)",
+      "a=CircularArc(O,A,B)"
+    ],
+    "asserts": []
+  },
+  "chord": {
+    "commands": [
+      "A=(-3,0)",
+      "B=(0,3)",
+      "s=Segment(A,B)"
+    ],
+    "asserts": []
+  },
+  "diameter_point": {
+    "commands": [
+      "O=(0,0)",
+      "A=(3,1)",
+      "B=Reflect(A,O)"
+    ],
+    "asserts": []
+  },
+  "tangent_from_point": {
+    "commands": [
+      "O=(0,0)",
+      "c=Circle(O,3)",
+      "P=(8,1)",
+      "aux1=Tangent(P,c)",
+      "B=Intersect(aux1_1,c)",
+      "C=Intersect(aux1_2,c)",
+      "t1=Segment(P,B)",
+      "t2=Segment(P,C)"
+    ],
+    "asserts": [
+      "IsTangent(aux1_1,c)",
+      "IsTangent(aux1_2,c)"
+    ]
+  },
+  "tangent_at_point": {
+    "commands": [
+      "O=(0,0)",
+      "c=Circle(O,3)",
+      "A=Point(c)",
+      "t=PerpendicularLine(A,Line(Center(c),A))"
+    ],
+    "asserts": [
+      "IsTangent(t,c)"
+    ]
+  },
+  "intersect_line_circle": {
+    "commands": [
+      "O=(0,0)",
+      "c=Circle(O,3)",
+      "U=(-5,0)",
+      "V=(5,0)",
+      "l=Line(U,V)",
+      "P=Intersect(l,c,1)"
+    ],
+    "asserts": []
+  },
+  "intersect_two_circles": {
+    "commands": [
+      "O1=(0,0)",
+      "c1=Circle(O1,3)",
+      "O2=(4,0)",
+      "c2=Circle(O2,3)",
+      "P=Intersect(c1,c2,1)"
+    ],
+    "asserts": []
+  },
+  "second_intersection": {
+    "commands": [
+      "O=(0,0)",
+      "N=(5,0)",
+      "F=(-3,6.4)",
+      "FN=Line(F,N)",
+      "aux1=ClosestPoint(FN,O)",
+      "A=Reflect(N,aux1)"
+    ],
+    "asserts": [
+      "AreEqual(Distance(A,O),Distance(N,O))"
+    ]
+  },
+  "point_on_circle": {
+    "commands": [
+      "O=(0,0)",
+      "c=Circle(O,3)",
+      "P=Point(c,0.2)"
+    ],
+    "asserts": []
+  },
+  "angle_mark": {
+    "commands": [
+      "A=(4,0)",
+      "B=(0,0)",
+      "C=(3,3)",
+      "alpha=Angle(A,B,C)"
+    ],
+    "asserts": []
+  },
+  "right_angle_mark": {
+    "commands": [
+      "A=(4,0)",
+      "B=(0,0)",
+      "C=(0,4)",
+      "beta=Angle(A,B,C)"
+    ],
+    "asserts": []
+  },
+  "inscribed_angle": {
+    "commands": [
+      "A=(4,0)",
+      "B=(0,0)",
+      "C=(3,3)",
+      "gamma=Angle(A,B,C)"
+    ],
+    "asserts": []
+  },
+  "polygon": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,0)",
+      "C=(4,3)",
+      "D=(0,3)",
+      "poly=Polygon(A,B,C,D)"
+    ],
+    "asserts": []
+  },
+  "parallelogram": {
+    "commands": [
+      "A=(0,0)",
+      "B=(5,0)",
+      "C=(6,3)",
+      "D=A+(C-B)",
+      "poly=Polygon(A,B,C,D)"
+    ],
+    "asserts": [
+      "AreParallel(Line(A,B),Line(D,C))"
+    ]
+  },
+  "rectangle": {
+    "commands": [
+      "A=(0,0)",
+      "B=(5,0)",
+      "aux1=UnitPerpendicularVector(Vector(A,B))",
+      "C=B+3*aux1",
+      "D=A+3*aux1",
+      "poly=Polygon(A,B,C,D)"
+    ],
+    "asserts": [
+      "ArePerpendicular(Line(A,B),Line(B,C))"
+    ]
+  },
+  "square": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,0)",
+      "C=Rotate(A,-90°,B)",
+      "D=Rotate(B,90°,A)",
+      "poly=Polygon(A,B,C,D)"
+    ],
+    "asserts": [
+      "AreEqual(Distance(A,B),Distance(B,C))",
+      "ArePerpendicular(Line(A,B),Line(B,C))"
+    ]
+  },
+  "rhombus": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,0)",
+      "P=(6.4,3)",
+      "aux1=UnitVector(Vector(B,P))",
+      "C=B+Distance(A,B)*aux1",
+      "D=A+(C-B)",
+      "poly=Polygon(A,B,C,D)"
+    ],
+    "asserts": [
+      "AreEqual(Distance(A,B),Distance(B,C))",
+      "AreParallel(Line(A,B),Line(D,C))"
+    ]
+  },
+  "trapezoid": {
+    "commands": [
+      "A=(0,0)",
+      "B=(6,0)",
+      "C=(5,3)",
+      "D=C+0.5*(A-B)",
+      "poly=Polygon(A,B,C,D)"
+    ],
+    "asserts": [
+      "AreParallel(Line(A,B),Line(C,D))"
+    ]
+  },
+  "diagonal": {
+    "commands": [
+      "P=(0,0)",
+      "Q=(4,3)",
+      "s=Segment(P,Q)"
+    ],
+    "asserts": []
+  },
+  "reflect_over_line": {
+    "commands": [
+      "A=(0,0)",
+      "B=(4,0)",
+      "d=Line(A,B)",
+      "P=(1,3)",
+      "Pp=Reflect(P,d)"
+    ],
+    "asserts": []
+  },
+  "reflect_over_point": {
+    "commands": [
+      "O=(0,0)",
+      "P=(3,1)",
+      "Pp=Reflect(P,O)"
+    ],
+    "asserts": []
+  }
+}

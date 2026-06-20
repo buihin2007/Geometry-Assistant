@@ -1,0 +1,17 @@
+{
+  "name": "ggb-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Headless GeoGebra render service (Playwright + Express)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "playwright": "^1.49.1"
+  }
+}

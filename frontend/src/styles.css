@@ -1,0 +1,190 @@
+:root {
+  --bg: #0f1117;
+  --panel: #171a23;
+  --panel-2: #1f2330;
+  --border: #2a2f3e;
+  --text: #e6e8ee;
+  --muted: #9aa3b2;
+  --accent: #4f8cff;
+  --accent-2: #2ee6a6;
+  --danger: #ff6b6b;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #1a1e2b, #14171f);
+}
+.topbar h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  grid-template-rows: minmax(0, 1fr); /* hàng kéo đầy chiều cao để panel co giãn */
+  gap: 16px;
+  padding: 16px;
+}
+@media (max-width: 900px) {
+  /* 1 cột: xếp chồng, cho applet chiều cao xác định để .ggb-wrap luôn khít. */
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    min-height: 0;
+  }
+  .panel.right { height: 78vh; }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.panel.left { display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+/* min-height:0 cho phép .ggb-wrap (flex:1) co lại đúng chiều cao còn lại */
+.panel.right { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+.field-label { font-size: 13px; color: var(--muted); }
+
+textarea {
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  resize: vertical;
+  /* Lấp khoảng trống sidebar: textarea giãn theo không gian còn lại (min ~10 dòng),
+     đề dài hiện được phần lớn nội dung; quá dài thì cuộn bên trong, không vỡ layout. */
+  flex: 1 1 auto;
+  min-height: 15em;          /* ~10 dòng ngay cả khi sidebar ngắn */
+  overflow-y: auto;
+  line-height: 1.5;
+}
+textarea:focus { outline: none; border-color: var(--accent); }
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: 0.15s;
+}
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  padding: 10px;
+}
+button.secondary { background: transparent; border-color: var(--accent-2); color: var(--accent-2); }
+
+.examples { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.chip {
+  text-align: left;
+  font-size: 13px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+}
+.chip:hover { color: var(--text); border-color: var(--accent); }
+
+.muted { color: var(--muted); font-size: 13px; }
+
+.notice { background: #2a2410; border: 1px solid #6b5a12; color: #ffe08a; padding: 10px; border-radius: 9px; font-size: 13px; }
+.error-box, .error-text { color: var(--danger); }
+.error-box { background: #2a1414; border: 1px solid #6b1212; padding: 10px; border-radius: 9px; font-size: 13px; }
+.info-box { background: #122a20; border: 1px solid #155c3c; color: var(--accent-2); padding: 10px; border-radius: 9px; font-size: 13px; }
+
+/* Khít container: chiếm hết chiều rộng + chiều cao còn lại của panel phải. */
+.ggb-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.ggb-target { position: absolute; inset: 0; }
+.ggb-target > * { width: 100% !important; height: 100% !important; }
+.ggb-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #333; z-index: 1; }
+
+.export-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.export-msg { font-size: 13px; color: var(--accent-2); }
+
+/* Báo hình sai / góp ý */
+.report-toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 13px;
+}
+.report-toggle:hover { color: var(--danger); border-color: var(--danger); }
+.report-panel {
+  display: flex; flex-direction: column; gap: 8px;
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px;
+  background: var(--panel-2);
+}
+.report-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-active { color: var(--text); border-color: var(--accent); border-style: solid; }
+.report-note {
+  flex: none; min-height: auto; width: 100%; resize: vertical;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 14px;
+}
+.report-actions { display: flex; gap: 8px; align-items: center; }
+.info-text { color: var(--accent-2); font-size: 13px; }
+
+.cmd-dump pre {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px;
+  overflow: auto;
+  font-size: 13px;
+}
+
+.authbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.authbar input {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 13px;
+  width: 130px;
+}
+
+.library { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
+.library h3 { font-size: 14px; margin: 0 0 8px; }
+.library ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.library li { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.library .link { background: transparent; border: none; color: var(--accent); text-align: left; padding: 4px; flex: 1; }
+.library .del { background: transparent; border: none; color: var(--muted); }
+.library .del:hover { color: var(--danger); }

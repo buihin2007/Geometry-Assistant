@@ -1,0 +1,111 @@
+"""Compiler tất định: plan (DSL JSON) → lệnh GeoGebra + asserts (đặc tả PHẦN 2).
+KHÔNG có LLM ở đây. Tên trong plan = tên GeoGebra (dùng trực tiếp).
+
+- validate_plan: kiểm op tồn tại, tham chiếu hợp lệ, ràng buộc tham số, out duy nhất,
+  thứ tự không vòng (dùng-trước-định-nghĩa). Chạy TRƯỚC compile.
+- compile_plan: bung từng primitive ra lệnh + assert; sinh tên phụ "auxN" tự ẩn.
+"""
+from .registry import PRIMITIVES
+
+
+class PlanError(Exception):
+    pass
+
+
+# Ràng buộc tham số literal (PHẦN 2, luật 3).
+def _check_params(op: str, args: dict, errors: list[str]):
+    def num(key):
+        v = args.get(key)
+        return v if isinstance(v, (int, float)) else None
+
+    if op == "point_on_segment":
+        t = num("t")
+        if t is None or not (0 < t < 1):
+            errors.append(f"point_on_segment.t phải ∈ (0,1), nhận {args.get('t')}")
+    if op == "point_on_ray_beyond":
+        t = num("t")
+        if t is None or not (t > 1):
+            errors.append(f"point_on_ray_beyond.t phải > 1, nhận {args.get('t')}")
+    if op == "circle_center_radius":
+        r = num("r")
+        if r is None or not (r > 0):
+            errors.append(f"circle_center_radius.r phải > 0, nhận {args.get('r')}")
+    if op in ("triangle_isosceles", "triangle_right", "rectangle"):
+        h = num("h")
+        if h is None or not (h > 0):
+            errors.append(f"{op}.h phải > 0, nhận {args.get('h')}")
+    if op in ("intersect", "intersect_line_circle", "intersect_two_circles") and "index" in args:
+        idx = args["index"]
+        if idx not in (1, 2):
+            errors.append(f"{op}.index phải là 1 hoặc 2, nhận {idx}")
+
+
+def _refs(args: dict) -> list[str]:
+    """Các giá trị là THAM CHIẾU (string) — gồm cả phần tử trong list 'points'."""
+    out = []
+    for v in args.values():
+        if isinstance(v, str):
+            out.append(v)
+        elif isinstance(v, list):
+            out.extend(x for x in v if isinstance(x, str))
+    return out
+
+
+def validate_plan(plan: list[dict]) -> list[str]:
+    errors: list[str] = []
+    known: set[str] = set()
+    for i, st in enumerate(plan):
+        op = st.get("op")
+        args = st.get("args", {}) or {}
+        out = st.get("out", []) or []
+        tag = f"[#{i} {op}]"
+
+        if op == "RAW":
+            # Escape hatch: chuyển pipeline thô; không validate sâu.
+            continue
+        if op not in PRIMITIVES:
+            errors.append(f"{tag} op không có trong menu primitive")
+            continue
+        prim = PRIMITIVES[op]
+
+        # tham chiếu hợp lệ (string args phải đã định nghĩa trước)
+        for ref in _refs(args):
+            if ref not in known:
+                errors.append(f"{tag} tham chiếu `{ref}` chưa được định nghĩa trước đó")
+
+        # ràng buộc tham số
+        _check_params(op, args, errors)
+
+        # số output khớp
+        if len(out) != prim.n_out:
+            errors.append(f"{tag} cần {prim.n_out} output, nhận {len(out)}")
+
+        # out duy nhất
+        for name in out:
+            if name in known:
+                errors.append(f"{tag} tên output `{name}` trùng (đã dùng)")
+            known.add(name)
+
+    return errors
+
+
+def compile_plan(plan: list[dict]) -> tuple[list[str], list[str]]:
+    """Trả (commands, asserts). Gọi sau khi validate_plan sạch (hoặc bỏ qua RAW)."""
+    commands: list[str] = []
+    asserts: list[str] = []
+    counter = {"n": 0}
+
+    def aux() -> str:
+        counter["n"] += 1
+        return f"aux{counter['n']}"
+
+    for st in plan:
+        op = st.get("op")
+        if op == "RAW" or op not in PRIMITIVES:
+            continue
+        prim = PRIMITIVES[op]
+        cmds, asr = prim.build(st.get("args", {}) or {}, st.get("out", []) or [], aux)
+        commands.extend(cmds)
+        asserts.extend(asr)
+
+    return commands, asserts

@@ -1,0 +1,69 @@
+# Render Blueprint — deploy 2 backend (orchestrator + ggb-service).
+# Dùng: Render Dashboard → New → Blueprint → trỏ vào repo này.
+# Secret (key LLM/Supabase) đặt sync:false → nhập trong dashboard, KHÔNG commit.
+# Frontend KHÔNG ở đây (deploy Cloudflare Pages riêng — xem DEPLOY.md).
+services:
+  # --- Node GeoGebra render (headless Chromium) ---
+  - type: web
+    name: ggb-service
+    runtime: docker
+    dockerfilePath: ./ggb-service/Dockerfile
+    dockerContext: ./ggb-service
+    # Chromium cần ≥1GB RAM → KHÔNG dùng free/starter (512MB) kẻo OOM.
+    plan: standard
+    region: singapore
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # --- Python orchestrator (planner/compiler/agents) ---
+  - type: web
+    name: orchestrator
+    runtime: docker
+    dockerfilePath: ./orchestrator/Dockerfile
+    dockerContext: ./orchestrator
+    plan: starter
+    region: singapore
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Tự nối tới ggb-service (host nội bộ; ggb_client tự thêm https://).
+      - key: GGB_SERVICE_URL
+        fromService:
+          name: ggb-service
+          type: web
+          property: host
+      - key: DEMO_LIMIT_PER_IP
+        value: "2"           # production: 2 lượt/IP vĩnh viễn (PLAN §9)
+      - key: USE_PLANNER
+        value: "true"
+      - key: ENABLE_REVIEW
+        value: "true"
+      - key: MAX_FIX_ROUNDS
+        value: "2"
+      - key: MAX_LLM_CALLS_PER_REQUEST
+        value: "8"
+      # --- Secrets: nhập trong Dashboard (sync:false) ---
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: LLM_MODEL
+        value: claude-haiku-4-5
+      - key: LLM_API_KEY
+        sync: false
+      - key: GENERATOR_PROVIDER
+        value: anthropic
+      - key: GENERATOR_MODEL
+        value: claude-haiku-4-5
+      - key: GENERATOR_API_KEY
+        sync: false
+      - key: REVIEWER_PROVIDER
+        value: anthropic
+      - key: REVIEWER_MODEL
+        value: claude-haiku-4-5
+      - key: REVIEWER_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

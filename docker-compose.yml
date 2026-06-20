@@ -1,0 +1,38 @@
+# Chạy 3 service local (PLAN §12 Phase 0).
+# Mỗi backend cũng có Dockerfile riêng để deploy Cloud Run scale-to-zero (§4.2).
+
+services:
+  ggb-service:
+    build: ./ggb-service
+    environment:
+      GGB_SERVICE_PORT: "8081"
+      GGB_POOL_SIZE: "1"
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8081/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  orchestrator:
+    build: ./orchestrator
+    env_file:
+      - .env
+    environment:
+      ORCHESTRATOR_PORT: "8080"
+      GGB_SERVICE_URL: "http://ggb-service:8081"
+    ports:
+      - "8080:8080"
+    depends_on:
+      ggb-service:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    env_file:
+      - .env
+    ports:
+      - "5173:80"
+    depends_on:
+      - orchestrator

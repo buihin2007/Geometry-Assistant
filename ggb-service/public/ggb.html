@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GeoGebra headless host</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #fff; }
+    #ggb { width: 900px; height: 700px; }
+  </style>
+  <script src="https://www.geogebra.org/apps/deployggb.js"></script>
+</head>
+<body>
+  <div id="ggb"></div>
+  <script>
+    // Trang host GeoGebra cho render headless.
+    // Playwright lái trang này qua các hàm window.__ggb* bên dưới.
+    window.__ggbReady = false;
+
+    const params = {
+      appName: "classic",
+      width: 900,
+      height: 700,
+      showToolBar: false,
+      showAlgebraInput: false,
+      showMenuBar: false,
+      showResetIcon: false,
+      enableLabelDrags: false,
+      enableShiftDragZoom: true,
+      enableRightClick: false,
+      showZoomButtons: false,
+      capturingThreshold: null,
+      errorDialogsActive: false,
+      useBrowserForJS: false,
+      appletOnLoad: function () {
+        window.__ggbReady = true;
+      },
+    };
+
+    const applet = new GGBApplet(params, true);
+    window.addEventListener("load", function () {
+      applet.inject("ggb");
+    });
+
+    function api() {
+      // ggbApplet là global do deployggb tạo ra.
+      return window.ggbApplet;
+    }
+
+    // Xóa toàn bộ construction để tái dùng trang giữa các request.
+    window.__ggbReset = function () {
+      try {
+        api().reset();
+        api().newConstruction();
+      } catch (e) {}
+    };
+
+    // Chạy lần lượt từng lệnh, ghi nhận trạng thái thành công/thất bại.
+    // Trả về mảng { index, command, ok, error }.
+    window.__ggbRunCommands = function (commands) {
+      const results = [];
+      const a = api();
+      for (let i = 0; i < commands.length; i++) {
+        const cmd = commands[i];
+        let ok = false;
+        let error = null;
+        try {
+          // evalCommand trả về true nếu thành công với mọi mệnh đề.
+          ok = a.evalCommand(cmd) === true;
+        } catch (e) {
+          ok = false;
+          error = String(e && e.message ? e.message : e);
+        }
+        if (!ok && !error) error = "evalCommand returned false (cú pháp sai hoặc đối tượng không dựng được)";
+        results.push({ index: i, command: cmd, ok: ok, error: error });
+      }
+      return results;
+    };
+
+    // Liệt kê toàn bộ object + trạng thái defined/visible, để Validator phía Python
+    // kiểm suy biến + phát hiện đối tượng phụ vô hạn còn hiển thị.
+    window.__ggbInspect = function () {
+      const a = api();
+      const names = a.getAllObjectNames();
+      const objects = [];
+      for (const name of names) {
+        let defined = false;
+        let type = "";
+        let value = null;
+        let visible = true;
+        try { defined = a.isDefined(name); } catch (e) {}
+        try { type = a.getObjectType(name); } catch (e) {}
+        try { visible = a.getVisible(name); } catch (e) {}
+        try {
+          // Lấy giá trị số nếu là numeric (vd diện tích, bán kính).
+          const v = a.getValue(name);
+          if (typeof v === "number" && isFinite(v)) value = v;
+        } catch (e) {}
+        objects.push({ name, type, defined, value, visible });
+      }
+      return objects;
+    };
+
+    // Ẩn mọi đối tượng phụ (tên bắt đầu bằng "aux") — công cụ trung gian chỉ dùng
+    // để lấy giao điểm, KHÔNG vẽ ra (PLAN: chống nét thừa). Dùng API setVisible
+    // (lệnh SetVisible/SetVisibleInView KHÔNG chạy qua evalCommand).
+    window.__ggbHideAux = function () {
+      const a = api();
+      let count = 0;
+      for (const name of a.getAllObjectNames()) {
+        const base = String(name).replace(/_\{?.*$/, "").toLowerCase();
+        if (base.startsWith("aux") || base === "aux") {
+          try { a.setVisible(name, false); count++; } catch (e) {}
+        } else if (a.getObjectType(name) === "point") {
+          try { a.setLabelVisible(name, true); } catch (e) {}   // hiện tên điểm
+        } else {
+          try { a.setLabelVisible(name, false); } catch (e) {}  // ẩn nhãn đa giác/đoạn cho gọn
+        }
+      }
+      return count;
+    };
+
+    // Đánh giá các "assert" quan hệ (biểu thức boolean GeoGebra, kỳ vọng = true):
+    // vd IsTangent(tAB,circ), AreCollinear(A,B,C), ArePerpendicular(h,a).
+    // Trả [{expr, value}] với value = 1/0/null (null = không tính được).
+    window.__ggbRunChecks = function (checks) {
+      const a = api();
+      const out = [];
+      let i = 0;
+      for (const expr of checks || []) {
+        // Tên tạm PHẢI bắt đầu bằng chữ cái (GeoGebra cấm tên bắt đầu bằng "_").
+        const tmp = "zzchk" + i++;
+        let value = null;
+        try {
+          if (a.evalCommand(tmp + "=(" + expr + ")")) {
+            const v = a.getValue(tmp);
+            if (typeof v === "number" && isFinite(v)) value = v;
+          }
+        } catch (e) { value = null; }
+        try { a.deleteObject(tmp); } catch (e) {}
+        out.push({ expr: expr, value: value });
+      }
+      return out;
+    };
+
+    // Parse phương trình đường tròn "(x - a)² + (y - b)² = r²" → {cx,cy,r}.
+    function parseCircleVS(vs) {
+      if (!vs) return null;
+      const body = vs.includes(":") ? vs.slice(vs.indexOf(":") + 1) : vs;
+      const rhs = body.match(/=\s*(-?[\d.]+(?:[eE][+-]?\d+)?)\s*$/);
+      if (!rhs) return null;
+      const r2 = parseFloat(rhs[1]);
+      if (!(r2 > 0)) return null;
+      const xm = body.match(/x\s*([+-])\s*([\d.]+)\s*\)/);
+      const ym = body.match(/y\s*([+-])\s*([\d.]+)\s*\)/);
+      const cx = xm ? (xm[1] === "-" ? +xm[2] : -+xm[2]) : 0;
+      const cy = ym ? (ym[1] === "-" ? +ym[2] : -+ym[2]) : 0;
+      return { cx, cy, r: Math.sqrt(r2) };
+    }
+    function largestCanvas() {
+      let best = null, area = 0;
+      for (const c of document.querySelectorAll("canvas")) {
+        const a2 = c.clientWidth * c.clientHeight;
+        if (a2 > area) { area = a2; best = c; }
+      }
+      return best;
+    }
+    // Fit khung nhìn vào bbox điểm + đường tròn, tỉ lệ đồng nhất theo canvas đồ họa
+    // (tròn vẫn tròn), có lề — thay cho ZoomFit (không tồn tại) / window cố định.
+    function fitForExport() {
+      const a = api();
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, found = false;
+      const add = (x, y) => {
+        if (!isFinite(x) || !isFinite(y)) return;
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y); found = true;
+      };
+      for (const n of a.getAllObjectNames()) {
+        let t = ""; try { t = a.getObjectType(n); } catch (e) { continue; }
+        if (t === "point") { try { add(a.getXcoord(n), a.getYcoord(n)); } catch (e) {} }
+        else if (t === "circle" || t === "conic") {
+          let vs = ""; try { vs = a.getValueString(n); } catch (e) { continue; }
+          const c = parseCircleVS(vs);
+          if (c) { add(c.cx - c.r, c.cy - c.r); add(c.cx + c.r, c.cy + c.r); }
+        }
+      }
+      if (!found) return;
+      const gv = largestCanvas();
+      const W = Math.max(200, gv ? gv.clientWidth : 900);
+      const H = Math.max(200, gv ? gv.clientHeight : 700);
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      const bw = Math.max(maxX - minX, 1e-6), bh = Math.max(maxY - minY, 1e-6);
+      const pad = 1.15;
+      const unit = Math.max((bw * pad) / W, (bh * pad) / H);
+      const halfW = (unit * W) / 2, halfH = (unit * H) / 2;
+      try { a.setCoordSystem(cx - halfW, cx + halfW, cy - halfH, cy + halfH); } catch (e) {}
+    }
+
+    // Tự fit view cho cân đối rồi xuất các định dạng yêu cầu.
+    window.__ggbExport = function (formats) {
+      const a = api();
+      const out = {};
+      fitForExport();
+      if (formats.includes("png")) {
+        try { out.pngBase64 = a.getPNGBase64(2, true, 72); } catch (e) { out.pngBase64 = null; }
+      }
+      if (formats.includes("svg")) {
+        try {
+          // exportSVG callback-based; gói trong promise ở phía gọi.
+          out.svg = null;
+        } catch (e) { out.svg = null; }
+      }
+      if (formats.includes("ggb")) {
+        try { out.ggbBase64 = a.getBase64(); } catch (e) { out.ggbBase64 = null; }
+      }
+      return out;
+    };
+
+    // SVG xuất qua callback nên tách riêng, trả Promise.
+    window.__ggbExportSVG = function () {
+      return new Promise(function (resolve) {
+        try {
+          api().exportSVG(function (html) { resolve(html || null); });
+        } catch (e) { resolve(null); }
+      });
+    };
+  </script>
+</body>
+</html>
