@@ -7,6 +7,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Windows: gcloud cần Python thật. PATH thường trỏ vào stub Store ("Python was not found"),
+# nên ép dùng Python bundled trong Cloud SDK nếu CLOUDSDK_PYTHON chưa được set.
+if [ -z "${CLOUDSDK_PYTHON:-}" ] && [ -n "${LOCALAPPDATA:-}" ]; then
+  _bp="$LOCALAPPDATA\\Google\\Cloud SDK\\google-cloud-sdk\\platform\\bundledpython\\python.exe"
+  [ -f "$_bp" ] && export CLOUDSDK_PYTHON="$_bp"
+fi
+
 PROJECT="${1:-${GCP_PROJECT:-}}"
 REGION="${REGION:-asia-southeast1}"   # gần VN; đổi nếu muốn
 [ -z "$PROJECT" ] && { echo "Usage: bash deploy-cloudrun.sh <GCP_PROJECT_ID>"; exit 1; }
