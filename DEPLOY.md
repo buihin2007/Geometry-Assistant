@@ -29,21 +29,31 @@ cold start. Kiến trúc 3 phần (xem README): **frontend tĩnh** + **orchestra
 
 ---
 
-## 2. ĐÃ CHỌN — Render (backend) + Cloudflare Pages (frontend)
+## 2. ĐÃ CHỌN — Cloud Run (backend, scale-to-zero ~$0) + Cloudflare Pages (frontend)
 
-Cổng (`PORT`) đã sửa: cả 2 service tự đọc `$PORT` Render cấp. `GGB_SERVICE_URL` tự nối
-qua `render.yaml` (orchestrator lấy host của ggb-service; client tự thêm `https://`).
+Lý do chọn Cloud Run thay Render: Render scale-to-zero **chỉ có ở plan free 512MB** —
+mà ggb-service (Chromium) cần ≥1GB → buộc lên plan trả phí **luôn-bật ~$32/tháng**.
+Cloud Run cho **scale-to-zero THẬT + RAM 2GB**, rảnh là ~$0 (trả theo request-second;
+~20 user test gần như miễn phí trong free tier). Đánh đổi: cold start (đã có UX xử lý).
 
-### 2a. Backend — qua Blueprint `render.yaml` (1 lần, cả 2 service)
-1. Render Dashboard → **New → Blueprint** → chọn repo này. Render đọc `render.yaml`,
-   tạo **ggb-service** (`plan: standard` — RAM ≥1GB cho Chromium) và **orchestrator** (`starter`).
-2. Render hỏi các secret `sync:false` → nhập:
-   - `LLM_API_KEY`, `GENERATOR_API_KEY`, `REVIEWER_API_KEY` = **Anthropic key**.
-   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` = từ Supabase.
-3. Deploy. Đợi cả 2 `/health` xanh. Ghi URL orchestrator, vd `https://orchestrator-xxx.onrender.com`.
-   - ⚠ `plan: standard` của ggb-service **tốn phí** (free 512MB sẽ OOM Chromium). Đây là
-     khoản chi gần như duy nhất bắt buộc. orchestrator dùng `starter` (rẻ/free-tier).
-   - Lần đầu build image Playwright hơi lâu (vài phút).
+Cổng `$PORT` đã sửa cho cả 2 service. `GGB_SERVICE_URL` script tự nối.
+
+### 2a. Backend — script `deploy-cloudrun.sh` (cả 2 service)
+Cần `gcloud` CLI + 1 GCP project (tạo ở https://console.cloud.google.com, bật billing —
+vẫn ~$0 trong free tier). Trong phiên này:
+```
+! gcloud auth login
+! bash deploy-cloudrun.sh <GCP_PROJECT_ID>
+```
+Script: bật API → deploy ggb-service (2Gi, `--no-cpu-throttling`, scale-to-zero) →
+deploy orchestrator (512Mi) với env (Anthropic + Supabase + GGB_SERVICE_URL + `DEMO_LIMIT_PER_IP=2`)
+đọc từ `.env` → in ra **ggb URL** + **orchestrator URL**. Lần đầu build (Cloud Build) vài phút.
+- Secret KHÔNG nằm trong script (đọc `.env`). Nâng cấp prod: chuyển sang **Secret Manager**
+  (`--update-secrets`) thay vì `--set-env-vars`.
+- Region mặc định `asia-southeast1` (Singapore); đổi qua `REGION=... bash deploy-cloudrun.sh ...`.
+
+> Fallback (nếu ngại gcloud, chấp nhận ~$32/tháng luôn-bật, KHÔNG cold start):
+> `render.yaml` vẫn còn trong repo → Render → New → Blueprint. Xem cuối file.
 
 ### 2b. Frontend — Cloudflare Pages
 1. Pages → **Create → Connect to Git** → repo này.
