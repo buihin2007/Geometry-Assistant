@@ -81,6 +81,10 @@
     // kiểm suy biến + phát hiện đối tượng phụ vô hạn còn hiển thị.
     window.__ggbInspect = function () {
       const a = api();
+      // getValueString làm tròn theo HIỂN THỊ (mặc định 2 chữ số) → tâm/bán kính đường
+      // tròn & hệ số đường thẳng bị mất chính xác, verifier Python báo sai oan. Ép 15
+      // chữ số để đọc gần đủ độ chính xác máy.
+      try { a.setRounding("15"); } catch (e) {}
       const names = a.getAllObjectNames();
       const objects = [];
       for (const name of names) {
@@ -96,7 +100,21 @@
           const v = a.getValue(name);
           if (typeof v === "number" && isFinite(v)) value = v;
         } catch (e) {}
-        objects.push({ name, type, defined, value, visible });
+        // Hình học để verifier Python (§5) kiểm quan hệ từ TỌA ĐỘ (không phụ thuộc
+        // boolean GeoGebra): điểm→x,y; đường tròn→tâm+bán kính; đường thẳng→phương trình.
+        const geo = {};
+        try {
+          if (type === "point") {
+            geo.x = a.getXcoord(name);
+            geo.y = a.getYcoord(name);
+          } else if (type === "circle" || type === "conic") {
+            const c = parseCircleVS(a.getValueString(name));
+            if (c) { geo.cx = c.cx; geo.cy = c.cy; geo.r = c.r; }
+          } else if (type === "line" || type === "segment" || type === "ray" || type === "vector") {
+            geo.eq = a.getValueString(name); // Python parse "ax+by=c" / "y=mx+b" / "x=c"
+          }
+        } catch (e) {}
+        objects.push({ name, type, defined, value, visible, ...geo });
       }
       return objects;
     };

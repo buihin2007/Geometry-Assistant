@@ -8,6 +8,7 @@ from .llm.factory import make_provider
 from .agents.generator import Generator, is_complex
 from .agents.planner import Planner
 from .agents.validator import validate
+from .agents.geometry_verify import verify_relations
 from .agents.reviewer import Reviewer
 from .primitives.compiler import validate_plan, compile_plan
 
@@ -116,6 +117,27 @@ class Pipeline:
             res.png_base64 = render.get("pngBase64")
             res.svg = render.get("svg")
             res.ggb_base64 = render.get("ggbBase64")
+
+            # --- Verifier quan hệ Python (đọc tọa độ) là PHÁN QUYẾT CHÍNH; GeoGebra
+            #     chỉ fallback cho assert Python chưa kết luận (upgrade_plan §5). Không
+            #     loại oan hình đúng: Python trả None → giữ kết quả GeoGebra. ---
+            if asserts:
+                py = verify_relations(asserts, render.get("objects", []))
+                n_py, n_disagree = 0, 0
+                for chk in render.get("checkResults", []) or []:
+                    v = py.get(chk.get("expr"))
+                    if v is None:
+                        continue
+                    n_py += 1
+                    ggb = chk.get("value")
+                    if ggb is not None and (ggb == 1) != bool(v):
+                        n_disagree += 1
+                    chk["value"] = 1 if v else 0  # Python authoritative
+                if n_py:
+                    res.log.append(
+                        f"[round {round_idx}] verify Python: {n_py}/{len(asserts)} assert "
+                        f"(còn lại fallback GeoGebra); bất đồng với GeoGebra: {n_disagree}"
+                    )
 
             # --- Technical Validator (deterministic) ---
             vr = validate(commands, render)
