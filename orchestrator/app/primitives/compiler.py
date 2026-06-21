@@ -89,6 +89,34 @@ def validate_plan(plan: list[dict]) -> list[str]:
     return errors
 
 
+def valid_prefix(plan: list[dict]) -> tuple[list[dict], str | None]:
+    """Tiền tố HỢP LỆ tối đa của plan + mô tả bước hỏng đầu tiên (fail gọn §6).
+
+    Dừng ở statement đầu tiên: là RAW / op ngoài menu / tham chiếu chưa định nghĩa /
+    sai số output. Trả (các statement dựng được, mô tả bước không dựng được hoặc None).
+    """
+    known: set[str] = set()
+    prefix: list[dict] = []
+    for st in plan:
+        op = st.get("op")
+        args = st.get("args", {}) or {}
+        out = st.get("out", []) or []
+        if op == "RAW":
+            note = (args.get("note") or "thao tác ngoài thư viện").strip()
+            return prefix, f"bước '{note}' (chưa có primitive tương ứng)"
+        if op not in PRIMITIVES:
+            return prefix, f"phép dựng '{op}' chưa được hỗ trợ"
+        bad_ref = next((r for r in _refs(args) if r not in known), None)
+        if bad_ref is not None:
+            return prefix, f"bước {op} cần '{bad_ref}' nhưng nó chưa dựng được"
+        if len(out) != PRIMITIVES[op].n_out:
+            return prefix, f"bước {op} sai số đối tượng tạo ra"
+        for name in out:
+            known.add(name)
+        prefix.append(st)
+    return prefix, None
+
+
 def compile_plan(plan: list[dict]) -> tuple[list[str], list[str]]:
     """Trả (commands, asserts). Gọi sau khi validate_plan sạch (hoặc bỏ qua RAW)."""
     commands: list[str] = []

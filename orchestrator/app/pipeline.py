@@ -10,7 +10,7 @@ from .agents.planner import Planner
 from .agents.validator import validate
 from .agents.geometry_verify import verify_relations
 from .agents.reviewer import Reviewer
-from .primitives.compiler import validate_plan, compile_plan
+from .primitives.compiler import validate_plan, compile_plan, valid_prefix
 
 
 @dataclass
@@ -23,8 +23,10 @@ class PipelineResult:
     llm_calls: int = 0
     review_passed: bool | None = None
     verified: bool = False  # validator OK và review pass/disabled → coi như đạt
+    partial: bool = False   # chỉ dựng được một phần (fail gọn §6)
     warnings: list[str] = field(default_factory=list)
     log: list[str] = field(default_factory=list)
+    last_plan: list | None = None  # plan planner gần nhất (để dựng phần hợp lệ khi fail)
 
 
 class LLMBudgetExceeded(Exception):
@@ -66,6 +68,26 @@ class Pipeline:
             res2.log = res.log + ["[escalate] ─── lượt model mạnh ───"] + res2.log
             if res2.verified or res2.png_base64:
                 res = res2
+
+        # --- Fail gọn (upgrade_plan §6): nếu vẫn chưa đạt VÀ nguyên nhân là có BƯỚC
+        #     KHÔNG DỰNG ĐƯỢC (vượt phạm vi / thiếu primitive / RAW), trả phần dựng được
+        #     (có nhãn) + báo bước fail, thay vì hình vỡ/trống. ---
+        if not res.verified and res.last_plan:
+            prefix, bad = valid_prefix(res.last_plan)
+            if bad is not None and prefix:
+                try:
+                    cmds, asserts = compile_plan(prefix)
+                    render = await self.ggb.render(cmds, render_formats, checks=[])
+                    if render.get("pngBase64"):
+                        res.commands = cmds
+                        res.png_base64 = render.get("pngBase64")
+                        res.svg = render.get("svg")
+                        res.ggb_base64 = render.get("ggbBase64")
+                        res.partial = True
+                        res.warnings.insert(0, f"Chỉ dựng được một phần hình: chưa dựng được {bad}.")
+                        res.log.append(f"[partial] dựng {len(prefix)}/{len(res.last_plan)} bước; dừng tại: {bad}")
+                except Exception as e:
+                    res.log.append(f"[partial] không dựng được phần hợp lệ: {e}")
 
         # Ghi log đề chưa hoàn hảo (còn cảnh báo / review chưa đạt) để mở rộng test
         # hồi quy dần (PLAN Vấn đề 3) — không chặn, lỗi ghi log thì bỏ qua.
@@ -113,6 +135,7 @@ class Pipeline:
                     mode = "generator"
                     feedback = None
                     continue
+                res.last_plan = plan  # giữ plan gần nhất (kể cả RAW/sai) cho fail gọn §6
                 if Planner.is_raw(plan):
                     res.log.append(f"[round {round_idx}] planner RAW → escape generator")
                     mode = "generator"

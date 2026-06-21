@@ -107,6 +107,7 @@ async def generate(
         "rounds": result.rounds,
         "llmCalls": result.llm_calls,
         "reviewPassed": result.review_passed,
+        "partial": result.partial,
         "warnings": result.warnings,
         "log": result.log,
         "remaining": decision.remaining,
