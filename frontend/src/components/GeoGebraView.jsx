@@ -42,6 +42,7 @@ const GeoGebraView = forwardRef(function GeoGebraView({ commands }, ref) {
   const targetRef = useRef(null); // chỗ inject applet
   const appletRef = useRef(null);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false); // GGBApplet không tải được
 
   // Đồng bộ kích thước applet đúng bằng kích thước container hiện tại.
   // GeoGebra bọc applet trong .applet_scaler và TỰ áp transform:scale khi window
@@ -167,36 +168,70 @@ const GeoGebraView = forwardRef(function GeoGebraView({ commands }, ref) {
   // Khởi tạo applet với kích thước theo container THẬT.
   useEffect(() => {
     let cancelled = false;
-    const wrap = wrapRef.current;
-    const w = Math.max(MIN_DIM, Math.floor(wrap?.clientWidth || 760));
-    const h = Math.max(MIN_DIM, Math.floor(wrap?.clientHeight || 620));
-    const params = {
-      appName: "classic",
-      width: w,
-      height: h,
-      perspective: "G", // chỉ hiện Graphics view (ẩn Algebra) → hình lấp đầy khung
-      showToolBar: true,
-      showAlgebraInput: false,
-      showMenuBar: false,
-      enableLabelDrags: true,
-      enableShiftDragZoom: true,
-      enableRightClick: true,
-      errorDialogsActive: false,
-      // KHÔNG bật allowUpscale/scaleContainerClass: chúng kích hoạt cơ chế
-      // transform:scale tự động của GeoGebra, chỏi với việc setWidth/setHeight
-      // để fill khít. Ta tự quản kích thước qua ResizeObserver.
-      appletOnLoad: (api) => {
-        if (cancelled) return;
-        appletRef.current = api;
-        setReady(true);
-        sizeToContainer();
-        if (commands && commands.length) loadCommands(api, commands);
-      },
+
+    const init = () => {
+      if (cancelled) return;
+      const wrap = wrapRef.current;
+      const w = Math.max(MIN_DIM, Math.floor(wrap?.clientWidth || 760));
+      const h = Math.max(MIN_DIM, Math.floor(wrap?.clientHeight || 620));
+      injectApplet(w, h);
     };
-    const applet = new window.GGBApplet(params, true);
-    applet.inject(targetRef.current);
+
+    // deployggb.js (từ geogebra.org) có thể tải chậm/bị chặn → window.GGBApplet chưa
+    // có khi React mount. Trước đây gọi thẳng new window.GGBApplet(...) sẽ NÉM LỖI và
+    // (không có error boundary) làm ĐEN TOÀN MÀN HÌNH. Nay: chờ tối đa ~20s, nếu vẫn
+    // không có thì báo lỗi nhẹ trong khung vẽ, phần còn lại của app vẫn dùng được.
+    const injectApplet = (w, h) => {
+      const params = {
+        appName: "classic",
+        width: w,
+        height: h,
+        perspective: "G", // chỉ hiện Graphics view (ẩn Algebra) → hình lấp đầy khung
+        showToolBar: true,
+        showAlgebraInput: false,
+        showMenuBar: false,
+        enableLabelDrags: true,
+        enableShiftDragZoom: true,
+        enableRightClick: true,
+        errorDialogsActive: false,
+        // KHÔNG bật allowUpscale/scaleContainerClass: chúng kích hoạt cơ chế
+        // transform:scale tự động của GeoGebra, chỏi với việc setWidth/setHeight
+        // để fill khít. Ta tự quản kích thước qua ResizeObserver.
+        appletOnLoad: (api) => {
+          if (cancelled) return;
+          appletRef.current = api;
+          setReady(true);
+          sizeToContainer();
+          if (commands && commands.length) loadCommands(api, commands);
+        },
+      };
+      try {
+        const applet = new window.GGBApplet(params, true);
+        applet.inject(targetRef.current);
+      } catch (e) {
+        console.error("GGBApplet inject lỗi:", e);
+        setLoadError(true);
+      }
+    };
+
+    // Chờ window.GGBApplet (deployggb.js) sẵn sàng rồi mới khởi tạo; tối đa ~20s.
+    let waited = 0;
+    const STEP = 200;
+    const MAX_WAIT = 20000;
+    const timer = setInterval(() => {
+      if (cancelled) return clearInterval(timer);
+      if (typeof window.GGBApplet === "function") {
+        clearInterval(timer);
+        init();
+      } else if ((waited += STEP) >= MAX_WAIT) {
+        clearInterval(timer);
+        setLoadError(true);
+      }
+    }, STEP);
+
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -253,7 +288,15 @@ const GeoGebraView = forwardRef(function GeoGebraView({ commands }, ref) {
 
   return (
     <div className="ggb-wrap" ref={wrapRef}>
-      {!ready && <div className="ggb-loading">Đang tải bảng vẽ GeoGebra…</div>}
+      {!ready && !loadError && (
+        <div className="ggb-loading">Đang tải bảng vẽ GeoGebra…</div>
+      )}
+      {loadError && (
+        <div className="ggb-loading" style={{ textAlign: "center", padding: 20 }}>
+          Không tải được thư viện vẽ hình (GeoGebra).<br />
+          Mạng có thể chậm hoặc bị chặn — hãy thử tải lại trang hoặc đổi mạng.
+        </div>
+      )}
       <div className="ggb-target" ref={targetRef} />
     </div>
   );
