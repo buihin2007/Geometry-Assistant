@@ -123,6 +123,17 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   sai, tâm sập về điểm khác). GIAO THỨ HAI hai đường tròn đã biết 1 giao điểm chung →
   second_intersection_two_circles(c1, c2, known=<giao điểm đã biết>); KHÔNG dùng
   intersect_two_circles với index (không ổn định).
+- TỨ GIÁC (dựng-đúng-định-nghĩa, KHÔNG tự đoán tọa độ 4 đỉnh; thứ tự A→B→C→D vòng quanh):
+  "hình thoi ABCD góc BAD = X°"→rhombus_angle(A,B,angle=X); "hình thoi" không cho góc→
+  rhombus(A,B,P) (P là điểm hướng đỉnh thứ ba). "hình bình hành"→parallelogram; "hình
+  chữ nhật"→rectangle; "hình vuông"→square; "hình thang cân"→isosceles_trapezoid(A,B,h,
+  lenCD) (AB đáy lớn, chọn lenCD<|AB|); "hình thang" thường→trapezoid; "hình diều / 2 cặp
+  cạnh kề bằng, trục là đường chéo AC"→kite(A,C,B); "tứ giác ABCD nội tiếp (O)"→
+  cyclic_quadrilateral(c, t1<t2<t3<t4 ∈[0,1]).
+- TIẾP TUYẾN/ĐƯỜNG TRÒN chuyên: "đường tròn tiếp xúc 2 đường tại 2 điểm cho trước"→
+  circle_tangent_2lines_at_points(line1,P1,line2,P2); "tiếp tuyến thứ hai/khác từ điểm
+  ngoài"→tangent_other_than(P,c,known=<tiếp tuyến đã biết>); "đường tròn đường kính AB"→
+  circle_diameter(A,B). Quay đối tượng theo góc số→rotate(obj,center,angle).
 - Nếu đề cần thao tác KHÔNG có trong menu: xuất đúng một bước {{"op":"RAW","args":{{"note":"<mô tả>"}},"out":[]}}.
 
 MENU PRIMITIVE (đóng):

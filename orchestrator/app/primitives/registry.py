@@ -475,6 +475,104 @@ def _second_intersection_two_circles(ar, o, aux):
     )
 
 
+# ───────────────────── J. Tứ giác chuyên & quay tổng quát ─────────────────────
+def _rhombus_angle(ar, o, aux):
+    # Hình thoi ABCD theo GÓC BAD cho trước: D=quay B quanh A góc 'angle' (⇒ |AD|=|AB|),
+    # C=B+(D-A). Thứ tự A→B→C→D đi vòng (C đối A). VERIFIED.
+    C, D, poly = o[0], o[1], o[2]
+    A, B = ar["A"], ar["B"]
+    return (
+        [f"{D}=Rotate({B},{ar['angle']}°,{A})",
+         f"{C}={B}+({D}-{A})",
+         f"{poly}=Polygon({A},{B},{C},{D})"],
+        [f"AreEqual(Distance({A},{B}),Distance({B},{C}))",
+         f"AreEqual(Distance({A},{B}),Distance({A},{D}))"],
+    )
+
+
+def _isosceles_trapezoid(ar, o, aux):
+    # Hình thang cân ABCD, AB là đáy lớn; CD ∥ AB ở độ cao h, dài lenCD, căn giữa
+    # (đối xứng qua trung trực AB) ⇒ hai cạnh bên bằng nhau. VERIFIED.
+    C, D, poly = o[0], o[1], o[2]
+    A, B = ar["A"], ar["B"]
+    n, u = aux(), aux()
+    return (
+        [f"{n}=UnitPerpendicularVector(Vector({A},{B}))",
+         f"{u}=UnitVector(Vector({A},{B}))",
+         f"{D}={A}+{ar['h']}*{n}+((Distance({A},{B})-{ar['lenCD']})/2)*{u}",
+         f"{C}={D}+{ar['lenCD']}*{u}",
+         f"{poly}=Polygon({A},{B},{C},{D})"],
+        [f"AreParallel(Line({A},{B}),Line({C},{D}))",
+         f"AreEqual(Distance({A},{D}),Distance({B},{C}))"],
+    )
+
+
+def _kite(ar, o, aux):
+    # Hình diều ABCD trục AC: D đối xứng B qua đường AC ⇒ AB=AD, CB=CD. VERIFIED.
+    D, poly = o[0], o[1]
+    A, C, B = ar["A"], ar["C"], ar["B"]
+    return (
+        [f"{D}=Reflect({B},Line({A},{C}))",
+         f"{poly}=Polygon({A},{B},{C},{D})"],
+        [f"AreEqual(Distance({A},{B}),Distance({A},{D}))",
+         f"AreEqual(Distance({C},{B}),Distance({C},{D}))"],
+    )
+
+
+def _cyclic_quadrilateral(ar, o, aux):
+    # Tứ giác nội tiếp: 4 điểm trên đường tròn c tại 4 tham số t1<t2<t3<t4 (∈[0,1])
+    # theo thứ tự vòng ⇒ đa giác lồi nội tiếp. VERIFIED (AreConcyclic).
+    A, B, C, D, poly = o[0], o[1], o[2], o[3], o[4]
+    c = ar["c"]
+    return (
+        [f"{A}=Point({c},{ar['t1']})",
+         f"{B}=Point({c},{ar['t2']})",
+         f"{C}=Point({c},{ar['t3']})",
+         f"{D}=Point({c},{ar['t4']})",
+         f"{poly}=Polygon({A},{B},{C},{D})"],
+        [f"AreConcyclic({A},{B},{C},{D})"],
+    )
+
+
+def _circle_tangent_2lines_at_points(ar, o, aux):
+    # Đường tròn tiếp xúc line1 tại P1 VÀ line2 tại P2: tâm = giao 2 đường vuông góc tại
+    # P1, P2. (Chỉ tồn tại khi P1,P2 nhất quán; assert IsTangent bắt sai.) VERIFIED.
+    O, c = o[0], o[1]
+    e1, e2 = aux(), aux()
+    return (
+        [f"{e1}=PerpendicularLine({ar['P1']},{ar['line1']})",
+         f"{e2}=PerpendicularLine({ar['P2']},{ar['line2']})",
+         f"{O}=Intersect({e1},{e2})",
+         f"{c}=Circle({O},{ar['P1']})"],
+        [f"IsTangent({ar['line1']},{c})", f"IsTangent({ar['line2']},{c})"],
+    )
+
+
+def _tangent_other_than(ar, o, aux):
+    # Tiếp tuyến từ P (ngoài c) KHÁC tiếp tuyến 'known': hai tiếp tuyến từ P đối xứng
+    # qua đường P–tâm ⇒ t = đối xứng known qua Line(P,Center(c)). VERIFIED, không index.
+    t = o[0]
+    return (
+        [f"{t}=Reflect({ar['known']},Line({ar['P']},Center({ar['c']})))"],
+        [f"IsTangent({t},{ar['c']})"],
+    )
+
+
+def _circle_diameter(ar, o, aux):
+    # Đường tròn đường kính AB: tâm = trung điểm AB, bán kính = |AB|/2. VERIFIED.
+    O, c = o[0], o[1]
+    return (
+        [f"{O}=Midpoint({ar['A']},{ar['B']})",
+         f"{c}=Circle({O},Distance({ar['A']},{ar['B']})/2)"],
+        [f"AreEqual(Distance({O},{ar['A']}),Radius({c}))"],
+    )
+
+
+def _rotate(ar, o, aux):
+    # Quay đối tượng bất kỳ (điểm/đoạn/đa giác) quanh center một góc 'angle' độ (+CCW).
+    return [f"{o[0]}=Rotate({ar['obj']},{ar['angle']}°,{ar['center']})"], []
+
+
 # ───────────────────────── Bảng đăng ký ─────────────────────────
 def _t(*stmts):
     return list(stmts)
@@ -773,3 +871,57 @@ reg(Primitive("second_intersection_two_circles", ["c1", "c2", "known"], 1,
                _s("circle_tangent_to_line_at", {"T": "B", "line": "bc", "P": "H"}, ["O1", "c1"]),
                _s("circle_tangent_to_line_at", {"T": "C", "line": "bc", "P": "H"}, ["O2", "c2"]),
                _s("second_intersection_two_circles", {"c1": "c1", "c2": "c2", "known": "H"}, ["K"])]))
+
+# J — Tứ giác chuyên & quay tổng quát
+reg(Primitive("rhombus_angle", ["A", "B", "angle"], 3,
+              "Hình thoi ABCD theo GÓC BAD (độ) cho trước: đỉnh C, D + đa giác",
+              "hình thoi khi đề cho số đo góc (vd góc BAD = 70°)", _rhombus_angle,
+              [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 6, "y": 0}, ["B"]),
+               _s("rhombus_angle", {"A": "A", "B": "B", "angle": 70}, ["C", "D", "poly"])], ["angle"]))
+reg(Primitive("isosceles_trapezoid", ["A", "B", "h", "lenCD"], 3,
+              "Hình thang cân ABCD, AB đáy lớn, CD∥AB cao h dài lenCD căn giữa: C, D + đa giác",
+              "hình thang cân", _isosceles_trapezoid,
+              [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 8, "y": 0}, ["B"]),
+               _s("isosceles_trapezoid", {"A": "A", "B": "B", "h": 4, "lenCD": 4}, ["C", "D", "poly"])],
+              ["h", "lenCD"]))
+reg(Primitive("kite", ["A", "C", "B"], 2,
+              "Hình diều ABCD trục AC (B cho trước, D đối xứng B qua AC): D + đa giác",
+              "hình diều / tứ giác có trục đối xứng là đường chéo", _kite,
+              [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 0, "y": 6}, ["C"]),
+               _s("point_free", {"x": 3, "y": 2}, ["B"]),
+               _s("kite", {"A": "A", "C": "C", "B": "B"}, ["D", "poly"])]))
+reg(Primitive("cyclic_quadrilateral", ["c", "t1", "t2", "t3", "t4"], 5,
+              "Tứ giác ABCD nội tiếp đường tròn c (4 điểm tại 4 tham số ∈[0,1] tăng dần): A,B,C,D + đa giác",
+              "tứ giác nội tiếp một đường tròn cho trước", _cyclic_quadrilateral,
+              [_s("point_free", {"x": 0, "y": 0}, ["O"]),
+               _s("circle_center_radius", {"O": "O", "r": 5}, ["c"]),
+               _s("cyclic_quadrilateral", {"c": "c", "t1": 0.1, "t2": 0.35, "t3": 0.6, "t4": 0.85},
+                  ["A", "B", "C", "D", "poly"])], ["t1", "t2", "t3", "t4"]))
+reg(Primitive("circle_tangent_2lines_at_points", ["line1", "P1", "line2", "P2"], 2,
+              "Đường tròn tiếp xúc line1 tại P1 và line2 tại P2: tâm O + đường tròn c",
+              "đường tròn tiếp xúc hai đường thẳng tại hai điểm cho trước", _circle_tangent_2lines_at_points,
+              [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 4, "y": 3}, ["P1"]),
+               _s("line", {"A": "A", "B": "P1"}, ["l1"]), _s("point_free", {"x": 4, "y": -3}, ["P2"]),
+               _s("line", {"A": "A", "B": "P2"}, ["l2"]),
+               _s("circle_tangent_2lines_at_points", {"line1": "l1", "P1": "P1", "line2": "l2", "P2": "P2"},
+                  ["O", "c"])]))
+reg(Primitive("tangent_other_than", ["P", "c", "known"], 1,
+              "Tiếp tuyến từ P (ngoài c) khác tiếp tuyến 'known' đã biết (đối xứng known qua P–tâm)",
+              "tiếp tuyến thứ hai từ một điểm ngoài khi đã biết một tiếp tuyến", _tangent_other_than,
+              [_s("point_free", {"x": 0, "y": 0}, ["O"]),
+               _s("circle_center_radius", {"O": "O", "r": 3}, ["c"]),
+               _s("point_free", {"x": 8, "y": 1}, ["P"]),
+               _s("tangent_from_point", {"P": "P", "c": "c"}, ["B", "Cc", "t1", "t2"]),
+               _s("line", {"A": "P", "B": "B"}, ["known"]),
+               _s("tangent_other_than", {"P": "P", "c": "c", "known": "known"}, ["t"])]))
+reg(Primitive("circle_diameter", ["A", "B"], 2,
+              "Đường tròn đường kính AB: tâm O (trung điểm) + đường tròn c",
+              "đường tròn đường kính (vd đường kính AH)", _circle_diameter,
+              [_s("point_free", {"x": -3, "y": 0}, ["A"]), _s("point_free", {"x": 3, "y": 1}, ["B"]),
+               _s("circle_diameter", {"A": "A", "B": "B"}, ["O", "c"])]))
+reg(Primitive("rotate", ["obj", "center", "angle"], 1,
+              "Quay đối tượng bất kỳ quanh center một góc SỐ (độ, +ngược chiều kim đồng hồ)",
+              "phép quay một đối tượng (điểm/đoạn/hình) theo góc cho trước", _rotate,
+              [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 3, "y": 0}, ["B"]),
+               _s("segment", {"A": "A", "B": "B"}, ["s"]),
+               _s("rotate", {"obj": "s", "center": "A", "angle": 90}, ["s2"])], ["angle"]))
