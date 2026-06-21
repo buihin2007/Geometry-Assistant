@@ -328,6 +328,19 @@ def _point_on_circle(ar, o, aux):
     return [f"{o[0]}=Point({ar['c']})"], []
 
 
+def _point_on_arc(ar, o, aux):
+    # Điểm KÉO ĐƯỢC trên cung tròn A→B (tâm O, ngược chiều kim đồng hồ từ A tới B).
+    # Dùng cho "lấy điểm di động trên cung..." (bài quỹ tích / cực trị): điểm là
+    # Point(cung) ⇒ người dùng kéo dọc đúng cung. Cung là aux (đường tròn đã hiện).
+    E = o[0]
+    arc = aux()
+    return (
+        [f"{arc}=CircularArc({ar['O']},{ar['A']},{ar['B']})",
+         f"{E}=Point({arc})"],
+        [f"AreEqual(Distance({E},{ar['O']}),Distance({ar['A']},{ar['O']}))"],
+    )
+
+
 # ───────────────────────── E. Góc ─────────────────────────
 def _angle_mark(ar, o, aux):
     return [f"{o[0]}=Angle({ar['A']},{ar['B']},{ar['C']})"], []
@@ -769,6 +782,15 @@ reg(Primitive("point_on_circle", ["c"], 1,
               "Điểm trên đường tròn (param∈[0,1] tùy chọn để lấy điểm phân biệt)",
               "lấy điểm trên đường tròn", _point_on_circle,
               _CIRC + [_s("point_on_circle", {"c": "c", "param": 0.2}, ["P"])]))
+reg(Primitive("point_on_arc", ["O", "A", "B"], 1,
+              "Điểm KÉO ĐƯỢC trên cung tròn A→B (tâm O, ngược chiều kim đồng hồ)",
+              "lấy điểm DI ĐỘNG trên một cung xác định bởi hai đầu mút (bài cực trị/quỹ tích)",
+              _point_on_arc,
+              [_s("point_free", {"x": 0, "y": 0}, ["O"]),
+               _s("circle_center_radius", {"O": "O", "r": 5}, ["c"]),
+               _s("point_on_circle", {"c": "c", "param": 0.1}, ["A"]),
+               _s("point_on_circle", {"c": "c", "param": 0.4}, ["B"]),
+               _s("point_on_arc", {"O": "O", "A": "A", "B": "B"}, ["E"])]))
 
 # E
 reg(Primitive("angle_mark", ["A", "B", "C"], 1, "Ký hiệu góc ABC (đỉnh B)", "đánh dấu góc",

@@ -125,6 +125,19 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   tên) → đặt tên bắt đầu "aux" để tự ẩn. NHƯNG nếu ĐỀ GỌI TÊN đường đó (vd "đường
   thẳng d", "đường thẳng xy") thì GIỮ tên đề cho, để HIỆN bình thường, KHÔNG aux.
 - Lấy NHIỀU điểm phân biệt trên cùng đường tròn: point_on_circle có param∈[0,1] khác nhau.
+- ĐIỂM DI ĐỘNG TRÊN LOCUS (RẤT QUAN TRỌNG cho bài cực trị/quỹ tích "lấy điểm M trên...",
+  "M di động/thay đổi trên...", "điểm bất kỳ trên..."): PHẢI là điểm trên PATH để KÉO
+  ĐƯỢC, KHÔNG được dựng bằng công thức cố định:
+  • trên cung A→B → point_on_arc(O, A, B)  (đúng cung, kéo dọc cung)
+  • trên cả đường tròn → point_on_circle(c)
+  • trên đoạn/đường/đối tượng khác → point_on_object(path)
+  CHỈ dựng điểm bằng công thức/giao điểm khi đề GHIM nó bằng điều kiện cụ thể (trung
+  điểm, giao điểm, góc = …, cách … một khoảng, đối xứng…). "Lấy điểm E trên cung AC"
+  KHÔNG có điều kiện ghim ⇒ point_on_arc, TUYỆT ĐỐI không Rotate/Reflect/Angle để ép.
+- ĐIỂM THUỘC đối tượng: điểm nêu nằm TRÊN đường tròn/đường (đầu mút DÂY cung, điểm trên
+  (O), tiếp điểm, đỉnh trên đường tròn…) PHẢI dựng bằng point_on_circle(c)/point_on_object,
+  KHÔNG point_free — để nó THẬT SỰ nằm trên đối tượng và kéo dọc được. VD "dây BC của (O)":
+  B,C = point_on_circle(c) (param khác nhau) rồi Segment(B,C).
 - ĐIỀU KIỆN GÓC trên đường tròn: "lấy điểm F trên (đường tròn/cung) sao cho ∠XYF = ∠UVW"
   (đỉnh Y đã thuộc đường tròn) → point_on_circle_angle_transport(vertex=Y, from=X,
   c=<đường tròn>, rA=U, rB=V, rC=W). Phải dựng đường tròn TRƯỚC (vd circle_through_3 /

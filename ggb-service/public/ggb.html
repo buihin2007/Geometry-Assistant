@@ -92,9 +92,12 @@
         let type = "";
         let value = null;
         let visible = true;
+        let movable = false;
         try { defined = a.isDefined(name); } catch (e) {}
         try { type = a.getObjectType(name); } catch (e) {}
         try { visible = a.getVisible(name); } catch (e) {}
+        // Người dùng kéo được không (điểm tự do hoặc điểm trên path) — để ĐO tính động.
+        try { movable = a.isMoveable(name); } catch (e) {}
         try {
           // Lấy giá trị số nếu là numeric (vd diện tích, bán kính).
           const v = a.getValue(name);
@@ -114,7 +117,7 @@
             geo.eq = a.getValueString(name); // Python parse "ax+by=c" / "y=mx+b" / "x=c"
           }
         } catch (e) {}
-        objects.push({ name, type, defined, value, visible, ...geo });
+        objects.push({ name, type, defined, value, visible, movable, ...geo });
       }
       return objects;
     };
