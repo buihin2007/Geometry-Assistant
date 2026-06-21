@@ -85,13 +85,14 @@ class Pipeline:
         mode = "planner" if self.s.use_planner else "generator"
         prev_plan: list | None = None
 
-        # --- Bước phân tích đề (chỉ cho đề phức tạp, 1 lời gọi LLM) — PLAN Vấn đề 3 ---
+        # --- Bước phân tích đề thành bảng đối tượng cho ĐỀ PHỨC TẠP (1 lời gọi LLM,
+        #     upgrade_plan §3). Dùng cho CẢ planner (tiêm làm khung phân rã) lẫn generator. ---
         analysis: str | None = None
-        if self.s.enable_analysis and mode == "generator" and is_complex(problem):
+        if self.s.enable_analysis and is_complex(problem):
             try:
                 self._charge_llm(res)
                 analysis = await self.generator.analyze(problem)
-                res.log.append("[analyze] đề phức tạp → đã phân tích đối tượng trước")
+                res.log.append("[analyze] đề phức tạp → đã phân tích cấu trúc đối tượng trước")
             except Exception as e:
                 res.log.append(f"[analyze] bỏ qua (lỗi): {e}")
 
@@ -104,7 +105,9 @@ class Pipeline:
             if mode == "planner":
                 self._charge_llm(res)
                 try:
-                    plan = await planner.plan(problem, feedback=feedback, prev_plan=prev_plan)
+                    plan = await planner.plan(
+                        problem, feedback=feedback, prev_plan=prev_plan, analysis=analysis
+                    )
                 except Exception as e:
                     res.log.append(f"[round {round_idx}] planner lỗi → escape generator: {e}")
                     mode = "generator"

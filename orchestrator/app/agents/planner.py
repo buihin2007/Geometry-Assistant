@@ -162,16 +162,27 @@ class Planner:
         self.system = _make_system()
 
     async def plan(
-        self, problem: str, feedback: str | None = None, prev_plan: list | None = None
+        self,
+        problem: str,
+        feedback: str | None = None,
+        prev_plan: list | None = None,
+        analysis: str | None = None,
     ) -> list[dict]:
+        # Đề phức tạp: tiêm BẢNG ĐỐI TƯỢNG (phân rã cấu trúc, upgrade_plan §3) làm khung
+        # để planner đỡ lạc ở chuỗi phụ thuộc sâu. Vẫn phải xuất plan theo MENU.
+        analysis_block = (
+            f"Phân tích cấu trúc đề (đối tượng — loại — phụ thuộc), dựng theo thứ tự này:\n"
+            f"{analysis}\n\n" if analysis else ""
+        )
         if feedback and prev_plan is not None:
             user = (
                 f'Đề: "{problem}"\n\n'
+                f"{analysis_block}"
                 f"Plan trước:\n{json.dumps(prev_plan, ensure_ascii=False)}\n\n"
                 f"Vấn đề cần sửa:\n{feedback}\n\nTrả về PLAN JSON ĐÃ SỬA (đầy đủ)."
             )
         else:
-            user = f'Đề: "{problem}"\n\nTrả về PLAN JSON.'
+            user = f'Đề: "{problem}"\n\n{analysis_block}Trả về PLAN JSON.'
         raw = await self.provider.complete_text(self.system, user)
         plan = _extract_json_array(raw)
         if not isinstance(plan, list):
