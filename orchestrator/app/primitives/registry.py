@@ -443,6 +443,38 @@ def _point_on_circle_angle_transport(ar, o, aux):
     )
 
 
+# ───────────────────────── I. Đường tròn theo tiếp xúc ─────────────────────────
+def _circle_tangent_to_line_at(ar, o, aux):
+    # Đường tròn ĐI QUA P và TIẾP XÚC với 'line' tại điểm T (T nằm trên line).
+    # Tâm O: nằm trên đường vuông góc line tại T (bán kính OT ⊥ line) VÀ trên trung
+    # trực TP (cách đều T, P). O = giao hai đường đó; đường tròn = Circle(O,T).
+    # VERIFIED trên ggb-service: IsTangent(line,c)=1, P thuộc c.
+    O, c = o[0], o[1]
+    perp, pb = aux(), aux()
+    return (
+        [f"{perp}=PerpendicularLine({ar['T']},{ar['line']})",
+         f"{pb}=PerpendicularBisector({ar['T']},{ar['P']})",
+         f"{O}=Intersect({perp},{pb})",
+         f"{c}=Circle({O},{ar['T']})"],
+        [f"IsTangent({ar['line']},{c})",
+         f"AreEqual(Distance({O},{ar['P']}),Radius({c}))"],
+    )
+
+
+def _second_intersection_two_circles(ar, o, aux):
+    # Giao điểm THỨ HAI của hai đường tròn khi đã biết MỘT giao điểm 'known'. Hai giao
+    # điểm đối xứng nhau qua đường nối hai tâm ⇒ K = đối xứng known qua Line tâm-tâm.
+    # Robust, KHÔNG dùng index (index giao 2 đường tròn rất không ổn định).
+    K = o[0]
+    ctr = aux()
+    return (
+        [f"{ctr}=Line(Center({ar['c1']}),Center({ar['c2']}))",
+         f"{K}=Reflect({ar['known']},{ctr})"],
+        [f"AreEqual(Distance({K},Center({ar['c1']})),Radius({ar['c1']}))",
+         f"AreEqual(Distance({K},Center({ar['c2']})),Radius({ar['c2']}))"],
+    )
+
+
 # ───────────────────────── Bảng đăng ký ─────────────────────────
 def _t(*stmts):
     return list(stmts)
@@ -716,3 +748,28 @@ reg(Primitive("point_on_circle_angle_transport",
                _s("point_on_circle_angle_transport",
                   {"vertex": "A", "from": "P", "c": "capn", "rA": "M", "rB": "A", "rC": "C"},
                   ["F"])]))
+
+# I — Đường tròn theo tiếp xúc
+reg(Primitive("circle_tangent_to_line_at", ["T", "line", "P"], 2,
+              "Đường tròn đi qua P và tiếp xúc với 'line' tại điểm T (T trên line): tâm O + đường tròn c",
+              "đường tròn tiếp xúc một đường thẳng tại điểm cho trước và đi qua điểm khác",
+              _circle_tangent_to_line_at,
+              [_s("point_free", {"x": 0, "y": 5}, ["A"]),
+               _s("point_free", {"x": -4, "y": 0}, ["B"]),
+               _s("point_free", {"x": 6, "y": 0}, ["C"]),
+               _s("orthocenter", {"A": "A", "B": "B", "C": "C"}, ["H"]),
+               _s("line", {"A": "B", "B": "C"}, ["bc"]),
+               _s("circle_tangent_to_line_at", {"T": "B", "line": "bc", "P": "H"}, ["O1", "c1"])]))
+reg(Primitive("second_intersection_two_circles", ["c1", "c2", "known"], 1,
+              "Giao điểm thứ hai của hai đường tròn c1,c2 khi đã biết 1 giao điểm 'known' "
+              "(đối xứng known qua đường nối hai tâm; robust, không index)",
+              "hai đường tròn cắt nhau tại điểm mới mà đã biết một giao điểm chung",
+              _second_intersection_two_circles,
+              [_s("point_free", {"x": 0, "y": 5}, ["A"]),
+               _s("point_free", {"x": -4, "y": 0}, ["B"]),
+               _s("point_free", {"x": 6, "y": 0}, ["C"]),
+               _s("orthocenter", {"A": "A", "B": "B", "C": "C"}, ["H"]),
+               _s("line", {"A": "B", "B": "C"}, ["bc"]),
+               _s("circle_tangent_to_line_at", {"T": "B", "line": "bc", "P": "H"}, ["O1", "c1"]),
+               _s("circle_tangent_to_line_at", {"T": "C", "line": "bc", "P": "H"}, ["O2", "c2"]),
+               _s("second_intersection_two_circles", {"c1": "c1", "c2": "c2", "known": "H"}, ["K"])]))

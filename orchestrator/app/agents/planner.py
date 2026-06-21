@@ -64,6 +64,21 @@ tròn (APN) lấy F sao cho ∠PAF=∠MAC; D = giao của AM và trung trực AB
  {"op":"perpendicular_bisector","args":{"A":"A","B":"B"},"out":["tt"]},
  {"op":"intersect","args":{"obj1":"AM","obj2":"tt"},"out":["D"]}
 ]
+
+VÍ DỤ 5 — ĐƯỜNG TRÒN TIẾP XÚC đường thẳng tại điểm + GIAO THỨ HAI hai đường tròn:
+"Tam giác ABC nhọn, AB<AC, trực tâm H. (O1) đi qua H và tiếp xúc BC tại B; (O2) đi
+qua H và tiếp xúc BC tại C. (O1),(O2) cắt nhau tại điểm thứ hai K."
+[
+ {"op":"point_free","args":{"x":0,"y":5},"out":["A"]},
+ {"op":"point_free","args":{"x":-4,"y":0},"out":["B"]},
+ {"op":"point_free","args":{"x":6,"y":0},"out":["C"]},
+ {"op":"triangle","args":{"A":"A","B":"B","C":"C"},"out":["tri"]},
+ {"op":"orthocenter","args":{"A":"A","B":"B","C":"C"},"out":["H"]},
+ {"op":"line","args":{"A":"B","B":"C"},"out":["bc"]},
+ {"op":"circle_tangent_to_line_at","args":{"T":"B","line":"bc","P":"H"},"out":["O1","c1"]},
+ {"op":"circle_tangent_to_line_at","args":{"T":"C","line":"bc","P":"H"},"out":["O2","c2"]},
+ {"op":"second_intersection_two_circles","args":{"c1":"c1","c2":"c2","known":"H"},"out":["K"]}
+]
 """
 
 
@@ -102,6 +117,12 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   c=<đường tròn>, rA=U, rB=V, rC=W). Phải dựng đường tròn TRƯỚC (vd circle_through_3 /
   circumcircle). TUYỆT ĐỐI KHÔNG dùng point_on_object cho điểm có ràng buộc GÓC (đó là
   điểm tự do, sai vị trí). Quay một điểm theo góc SỐ độ cho trước → rotate_point.
+- ĐƯỜNG TRÒN TIẾP XÚC đường thẳng TẠI một điểm: "đường tròn đi qua P và tiếp xúc với
+  (đường) tại điểm T" → tạo line trước rồi circle_tangent_to_line_at(T=<tiếp điểm>,
+  line=<đường>, P=<điểm đi qua>) → [tâm, đường tròn]. KHÔNG dùng circle_through_3 (sẽ
+  sai, tâm sập về điểm khác). GIAO THỨ HAI hai đường tròn đã biết 1 giao điểm chung →
+  second_intersection_two_circles(c1, c2, known=<giao điểm đã biết>); KHÔNG dùng
+  intersect_two_circles với index (không ổn định).
 - Nếu đề cần thao tác KHÔNG có trong menu: xuất đúng một bước {{"op":"RAW","args":{{"note":"<mô tả>"}},"out":[]}}.
 
 MENU PRIMITIVE (đóng):
