@@ -40,6 +40,50 @@ def _base(name: str) -> str:
     return re.sub(r"_\{?.*$", "", str(name)).lower()
 
 
+def _seg_cross(p, q, r, s) -> bool:
+    """Hai đoạn pq, rs có cắt nhau ở điểm TRONG (proper intersection) không."""
+    def cr(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    d1, d2 = cr(p, q, r), cr(p, q, s)
+    d3, d4 = cr(r, s, p), cr(r, s, q)
+    return (d1 > 0) != (d2 > 0) and (d3 > 0) != (d4 > 0)
+
+
+def _point_xy(objects: list[dict]) -> dict:
+    """name (kể cả alias bỏ ngoặc subscript) → (x,y) cho các điểm có tọa độ."""
+    m = {}
+    for o in objects:
+        if (o.get("type") or "").lower() == "point" and o.get("x") is not None:
+            xy = (float(o["x"]), float(o["y"]))
+            n = o["name"]
+            m[n] = xy
+            m[n.replace("_{", "_").replace("}", "")] = xy
+    return m
+
+
+def _check_quad_order(commands: list[str], objects: list[dict]) -> list[str]:
+    """Mọi Polygon 4 đỉnh phải đi VÒNG QUANH (đa giác đơn): cạnh đối không cắt nhau.
+    Thứ tự sai (vd ABCD bắt chéo) ⇒ 'đường chéo' thành AD/BC thay vì AC/BD."""
+    errors = []
+    pts = _point_xy(objects)
+    for cmd in commands:
+        m = re.search(r"=\s*Polygon\(([^)]*)\)", cmd)
+        if not m:
+            continue
+        names = [a.strip() for a in m.group(1).split(",")]
+        if len(names) != 4 or not all(n in pts for n in names):
+            continue
+        a, b, c, d = (pts[n] for n in names)
+        # đa giác đơn ⟺ cạnh đối (AB,CD) và (BC,DA) KHÔNG cắt nhau
+        if _seg_cross(a, b, c, d) or _seg_cross(b, c, d, a):
+            errors.append(
+                f"Tứ giác {''.join(names)} SAI THỨ TỰ ĐỈNH (các cạnh cắt nhau). Đỉnh phải đi "
+                f"vòng quanh {names[0]}→{names[1]}→{names[2]}→{names[3]}; đường chéo là "
+                f"{names[0]}{names[2]} và {names[1]}{names[3]}. Đặt lại tọa độ/đỉnh cho đúng vòng."
+            )
+    return errors
+
+
 def validate(commands: list[str], render: dict) -> ValidationResult:
     errors: list[str] = []
     warnings: list[str] = []
@@ -96,6 +140,10 @@ def validate(commands: list[str], render: dict) -> ValidationResult:
                 f"Không kiểm chứng được quan hệ `{expr}` (assert sai cú pháp hoặc "
                 "tham chiếu đối tượng không tồn tại)."
             )
+
+    # 5) Thứ tự đỉnh tứ giác (đa giác đơn) — bắt lỗi "ABCD bắt chéo" làm AC/BD không
+    #    còn là đường chéo. Đọc tọa độ điểm từ render (đã export hình học).
+    errors.extend(_check_quad_order(commands, objects))
 
     # (Đã bỏ cảnh báo "nét thừa" cho đường vô hạn hiển thị: đường do ĐỀ NÊU TÊN — như
     #  "đường thẳng d" — cần được HIỆN. Việc ẩn công cụ trung gian do planner quyết

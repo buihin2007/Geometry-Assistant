@@ -79,6 +79,19 @@ qua H và tiếp xúc BC tại C. (O1),(O2) cắt nhau tại điểm thứ hai K
  {"op":"circle_tangent_to_line_at","args":{"T":"C","line":"bc","P":"H"},"out":["O2","c2"]},
  {"op":"second_intersection_two_circles","args":{"c1":"c1","c2":"c2","known":"H"},"out":["K"]}
 ]
+
+VÍ DỤ 6 — TỨ GIÁC + đường chéo: DÙNG primitive tứ giác (đỉnh đi vòng đúng), đường chéo
+là AC và BD. KHÔNG tự đặt 4 điểm tự do rồi Polygon, KHÔNG đặt điểm tên trùng tên tứ giác.
+"Cho hình thang ABCD (AB // CD), hai đường chéo AC và BD cắt nhau tại I."
+[
+ {"op":"point_free","args":{"x":0,"y":0},"out":["A"]},
+ {"op":"point_free","args":{"x":6,"y":0},"out":["B"]},
+ {"op":"point_free","args":{"x":5,"y":3},"out":["C"]},
+ {"op":"trapezoid","args":{"A":"A","B":"B","C":"C"},"out":["D","poly"]},
+ {"op":"diagonal","args":{"P":"A","Q":"C"},"out":["AC"]},
+ {"op":"diagonal","args":{"P":"B","Q":"D"},"out":["BD"]},
+ {"op":"intersect","args":{"obj1":"AC","obj2":"BD"},"out":["I"]}
+]
 """
 
 
@@ -123,7 +136,12 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   sai, tâm sập về điểm khác). GIAO THỨ HAI hai đường tròn đã biết 1 giao điểm chung →
   second_intersection_two_circles(c1, c2, known=<giao điểm đã biết>); KHÔNG dùng
   intersect_two_circles với index (không ổn định).
-- TỨ GIÁC (dựng-đúng-định-nghĩa, KHÔNG tự đoán tọa độ 4 đỉnh; thứ tự A→B→C→D vòng quanh):
+- TỨ GIÁC: LUÔN dùng primitive tứ giác bên dưới (chúng đảm bảo 4 đỉnh đi VÒNG QUANH
+  A→B→C→D đúng, đường chéo là AC và BD). TUYỆT ĐỐI KHÔNG tự đặt 4 điểm tự do rồi
+  Polygon (dễ bắt chéo → AC,BD hết là đường chéo). ĐƯỜNG CHÉO của ABCD là AC và BD
+  (nối đỉnh ĐỐI), KHÔNG bao giờ là AD hay BC (đó là cạnh). Vẽ chéo:
+  diagonal(P=A,Q=C) và diagonal(P=B,Q=D).
+  (dựng-đúng-định-nghĩa, KHÔNG tự đoán tọa độ 4 đỉnh; thứ tự A→B→C→D vòng quanh):
   "hình thoi ABCD góc BAD = X°"→rhombus_angle(A,B,angle=X); "hình thoi" không cho góc→
   rhombus(A,B,P) (P là điểm hướng đỉnh thứ ba). "hình bình hành"→parallelogram; "hình
   chữ nhật"→rectangle; "hình vuông"→square; "hình thang cân"→isosceles_trapezoid(A,B,h,
