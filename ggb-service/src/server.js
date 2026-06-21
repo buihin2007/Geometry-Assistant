@@ -18,6 +18,16 @@ app.use("/static", express.static(path.join(__dirname, "..", "public")));
 let pool = null;
 let poolReady = false;
 
+// Chờ pool ấm (Chromium + GeoGebra) tối đa timeoutMs. Dùng ở /render để cold start
+// (scale-to-zero) KHÔNG trả 503 ngay — chỉ làm request đầu lâu hơn, không lỗi.
+async function waitForPool(timeoutMs) {
+  const start = Date.now();
+  while (!poolReady && Date.now() - start < timeoutMs) {
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return poolReady;
+}
+
 app.get("/health", (req, res) => {
   res.json({ ok: true, poolReady, poolSize: POOL_SIZE });
 });
@@ -31,7 +41,11 @@ app.post("/render", async (req, res) => {
     return res.status(400).json({ error: "commands phải là mảng không rỗng" });
   }
   if (!poolReady) {
-    return res.status(503).json({ error: "render engine đang khởi động", warming: true });
+    // Cold start: chờ pool ấm thay vì 503 ngay (orchestrator timeout render ~120s).
+    const ready = await waitForPool(60000);
+    if (!ready) {
+      return res.status(503).json({ error: "render engine đang khởi động", warming: true });
+    }
   }
 
   try {
