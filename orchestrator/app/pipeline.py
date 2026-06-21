@@ -22,6 +22,7 @@ class PipelineResult:
     rounds: int = 0
     llm_calls: int = 0
     review_passed: bool | None = None
+    verified: bool = False  # validator OK và review pass/disabled → coi như đạt
     warnings: list[str] = field(default_factory=list)
     log: list[str] = field(default_factory=list)
 
@@ -43,11 +44,38 @@ class Pipeline:
         self.planner = Planner(make_provider(gprov, gmodel, gkey))
         self.reviewer = Reviewer(make_provider(rprov, rmodel, rkey))
 
+        # Planner tầng cao (Sonnet) — chỉ dựng nếu bật escalation (upgrade_plan §4).
+        self._escalation_planner = None
+        if settings.escalate_on_verify_fail:
+            eprov, emodel, ekey = settings.escalation_cfg()
+            if ekey:
+                self._escalation_planner = Planner(make_provider(eprov, emodel, ekey))
+
     async def run(self, problem: str, formats: list[str] | None = None) -> PipelineResult:
         formats = formats or ["png"]
         # Cần png để review nhìn; thêm nếu thiếu (sẽ lọc lại khi trả nếu muốn).
         render_formats = list({*formats, "png"})
 
+        # Lượt 1: planner mặc định (Haiku). Fail verify + bật escalation → lượt 2 (Sonnet).
+        res = await self._attempt(problem, render_formats, self.planner)
+        if (not res.verified and self.s.use_planner and self._escalation_planner is not None):
+            res.log.append(
+                f"[escalate] lượt Haiku chưa đạt verify → thử lại bằng {self.s.planner_escalation_model}"
+            )
+            res2 = await self._attempt(problem, render_formats, self._escalation_planner)
+            res2.log = res.log + ["[escalate] ─── lượt model mạnh ───"] + res2.log
+            if res2.verified or res2.png_base64:
+                res = res2
+
+        # Ghi log đề chưa hoàn hảo (còn cảnh báo / review chưa đạt) để mở rộng test
+        # hồi quy dần (PLAN Vấn đề 3) — không chặn, lỗi ghi log thì bỏ qua.
+        if res.warnings or res.review_passed is False:
+            self._log_failure(problem, res)
+        return res
+
+    async def _attempt(
+        self, problem: str, render_formats: list[str], planner: Planner
+    ) -> PipelineResult:
         res = PipelineResult(commands=[], png_base64=None)
         commands: list[str] = []
         feedback: str | None = None
@@ -76,7 +104,7 @@ class Pipeline:
             if mode == "planner":
                 self._charge_llm(res)
                 try:
-                    plan = await self.planner.plan(problem, feedback=feedback, prev_plan=prev_plan)
+                    plan = await planner.plan(problem, feedback=feedback, prev_plan=prev_plan)
                 except Exception as e:
                     res.log.append(f"[round {round_idx}] planner lỗi → escape generator: {e}")
                     mode = "generator"
@@ -165,6 +193,7 @@ class Pipeline:
             # --- Reviewer (LLM vision, có thể tắt) ---
             if not self.s.enable_review or not res.png_base64:
                 res.review_passed = None
+                res.verified = True  # validator đã OK; không review thì coi như đạt
                 break
 
             self._charge_llm(res)
@@ -174,11 +203,13 @@ class Pipeline:
                 # Review lỗi (vd Gemini 429, provider down) KHÔNG được làm hỏng
                 # cả request — hình đã dựng hợp lệ, cứ trả về kèm cảnh báo.
                 res.review_passed = None
+                res.verified = True  # technical OK; chỉ vision provider lỗi
                 res.warnings.append(f"Bỏ qua review (lỗi provider): {e}")
                 res.log.append(f"[round {round_idx}] reviewer SKIPPED: {e}")
                 break
             if review.passed:
                 res.review_passed = True
+                res.verified = True
                 res.log.append(f"[round {round_idx}] reviewer PASS")
                 break
 
@@ -189,10 +220,7 @@ class Pipeline:
                 res.warnings.append("Hết vòng sửa, review vẫn chưa đạt hoàn toàn.")
                 break
 
-        # Ghi log đề chưa hoàn hảo (còn cảnh báo / review chưa đạt) để mở rộng test
-        # hồi quy dần (PLAN Vấn đề 3) — không chặn, lỗi ghi log thì bỏ qua.
-        if res.warnings or res.review_passed is False:
-            self._log_failure(problem, res)
+        return res
 
         return res
 

@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     enable_review: bool = True
     max_fix_rounds: int = 3
     max_llm_calls_per_request: int = 8
+    # Hai tầng model (upgrade_plan §4): planner mặc định (Haiku) fail verify sau hết
+    # vòng sửa → thử lại bằng model mạnh hơn (Sonnet) MỘT lượt. Chỉ bài khó mới tốn.
+    planner_escalation_model: str = "claude-sonnet-4-6"
+    escalate_on_verify_fail: bool = True
     # Kiến trúc planner+compiler (THCS_construction_library_spec). Tắt → dùng
     # Generator sinh lệnh thô (pipeline cũ) cho mọi đề.
     use_planner: bool = True
@@ -59,6 +63,11 @@ class Settings(BaseSettings):
         model = self.reviewer_model or self.llm_model
         key = self.reviewer_api_key or self.llm_api_key
         return provider, model, key
+
+    def escalation_cfg(self) -> tuple[str, str, str]:
+        # Cùng provider/key planner, đổi sang model mạnh hơn.
+        provider, _, key = self.generator_cfg()
+        return provider, self.planner_escalation_model, key
 
 
 @lru_cache
