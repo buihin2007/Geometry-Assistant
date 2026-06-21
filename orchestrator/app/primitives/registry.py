@@ -418,6 +418,31 @@ def _reflect_over_point(ar, o, aux):
     return [f"{o[0]}=Reflect({ar['obj']},{ar['O']})"], []
 
 
+# ───────────────────────── H. Quay & chuyển góc ─────────────────────────
+def _rotate_point(ar, o, aux):
+    # Quay điểm P quanh center một góc 'angle' ĐỘ (literal). VERIFIED: +độ = ngược
+    # chiều kim đồng hồ (CCW), khớp Rotate(P,θ°,center) của GeoGebra.
+    return [f"{o[0]}=Rotate({ar['P']},{ar['angle']}°,{ar['center']})"], []
+
+
+def _point_on_circle_angle_transport(ar, o, aux):
+    # F trên đường tròn c sao cho ∠(from)(vertex)F = ∠(rA)(rB)(rC). 'vertex' phải nằm
+    # trên c. Cách: quay tia (vertex→from) quanh vertex một góc bằng góc tham chiếu,
+    # rồi lấy giao điểm THỨ HAI của tia với c (điểm còn lại chính là vertex). Lấy giao
+    # thứ hai bằng đối xứng vertex qua chân vuông góc tâm→tia (robust, KHÔNG dùng index).
+    # VERIFIED trên ggb-service: cả hai assert = 1 với tam giác ABC định hướng CCW.
+    F = o[0]
+    ang, rot, foot = aux(), aux(), aux()
+    return (
+        [f"{ang}=Angle({ar['rA']},{ar['rB']},{ar['rC']})",
+         f"{rot}=Rotate({ar['from']},{ang},{ar['vertex']})",
+         f"{foot}=ClosestPoint(Line({ar['vertex']},{rot}),Center({ar['c']}))",
+         f"{F}=Reflect({ar['vertex']},{foot})"],
+        [f"AreEqual(Distance({F},Center({ar['c']})),Radius({ar['c']}))",
+         f"AreEqual(Angle({ar['from']},{ar['vertex']},{F}),{ang})"],
+    )
+
+
 # ───────────────────────── Bảng đăng ký ─────────────────────────
 def _t(*stmts):
     return list(stmts)
@@ -666,3 +691,28 @@ reg(Primitive("reflect_over_line", ["obj", "line"], 1, "Đối xứng obj qua tr
 reg(Primitive("reflect_over_point", ["obj", "O"], 1, "Đối xứng obj qua tâm O", "đối xứng tâm",
               _reflect_over_point, [_s("point_free", {"x": 0, "y": 0}, ["O"]), _s("point_free", {"x": 3, "y": 1}, ["P"]),
               _s("reflect_over_point", {"obj": "P", "O": "O"}, ["Pp"])]))
+
+# H — Quay & chuyển góc
+reg(Primitive("rotate_point", ["P", "angle", "center"], 1,
+              "Quay điểm P quanh center một góc 'angle' ĐỘ (dương = ngược chiều kim đồng hồ)",
+              "quay một điểm quanh tâm theo góc SỐ cho trước (độ)", _rotate_point,
+              [_s("point_free", {"x": 0, "y": 0}, ["A"]),
+               _s("point_free", {"x": 3, "y": 0}, ["B"]),
+               _s("rotate_point", {"P": "B", "angle": 90, "center": "A"}, ["Bp"])], ["angle"]))
+reg(Primitive("point_on_circle_angle_transport",
+              ["vertex", "from", "c", "rA", "rB", "rC"], 1,
+              "Điểm F trên đường tròn c sao cho ∠(from)(vertex)F = ∠(rA)(rB)(rC); "
+              "vertex phải nằm trên c (quay tia vertex→from quanh vertex một góc bằng góc "
+              "tham chiếu rồi cắt c)",
+              "lấy điểm trên (cung/đường tròn) thỏa điều kiện một GÓC bằng góc cho trước",
+              _point_on_circle_angle_transport,
+              [_s("point_free", {"x": 0, "y": 5}, ["A"]),
+               _s("point_free", {"x": -4, "y": 0}, ["B"]),
+               _s("point_free", {"x": 6, "y": 0}, ["C"]),
+               _s("midpoint", {"A": "B", "B": "C"}, ["M"]),
+               _s("midpoint", {"A": "C", "B": "A"}, ["N"]),
+               _s("midpoint", {"A": "A", "B": "B"}, ["P"]),
+               _s("circle_through_3", {"A": "A", "B": "P", "C": "N"}, ["capn"]),
+               _s("point_on_circle_angle_transport",
+                  {"vertex": "A", "from": "P", "c": "capn", "rA": "M", "rB": "A", "rC": "C"},
+                  ["F"])]))

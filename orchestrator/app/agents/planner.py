@@ -44,6 +44,26 @@ N là đầu đường kính nên N ĐÃ THUỘC nửa đường tròn):
  {"op":"line","args":{"A":"N","B":"E"},"out":["NE"]},
  {"op":"second_intersection","args":{"line":"NE","center":"O","known":"N"},"out":["K"]}
 ]
+
+VÍ DỤ 4 — ĐIỀU KIỆN GÓC trên đường tròn (∠PAF = ∠MAC) → point_on_circle_angle_transport.
+Đỉnh góc A đã thuộc đường tròn (APN); F là điểm trên đường tròn sao cho góc ∠PAF
+bằng góc tham chiếu ∠MAC. KHÔNG dùng point_on_object (điểm tự do, sai vị trí).
+"Tam giác nhọn ABC (AB<AC); M,N,P trung điểm BC,CA,AB; trên cung nhỏ PN của đường
+tròn (APN) lấy F sao cho ∠PAF=∠MAC; D = giao của AM và trung trực AB."
+[
+ {"op":"point_free","args":{"x":0,"y":5},"out":["A"]},
+ {"op":"point_free","args":{"x":-4,"y":0},"out":["B"]},
+ {"op":"point_free","args":{"x":6,"y":0},"out":["C"]},
+ {"op":"triangle","args":{"A":"A","B":"B","C":"C"},"out":["tri"]},
+ {"op":"midpoint","args":{"A":"B","B":"C"},"out":["M"]},
+ {"op":"midpoint","args":{"A":"C","B":"A"},"out":["N"]},
+ {"op":"midpoint","args":{"A":"A","B":"B"},"out":["P"]},
+ {"op":"circle_through_3","args":{"A":"A","B":"P","C":"N"},"out":["capn"]},
+ {"op":"point_on_circle_angle_transport","args":{"vertex":"A","from":"P","c":"capn","rA":"M","rB":"A","rC":"C"},"out":["F"]},
+ {"op":"line","args":{"A":"A","B":"M"},"out":["AM"]},
+ {"op":"perpendicular_bisector","args":{"A":"A","B":"B"},"out":["tt"]},
+ {"op":"intersect","args":{"obj1":"AM","obj2":"tt"},"out":["D"]}
+]
 """
 
 
@@ -77,6 +97,11 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   tên) → đặt tên bắt đầu "aux" để tự ẩn. NHƯNG nếu ĐỀ GỌI TÊN đường đó (vd "đường
   thẳng d", "đường thẳng xy") thì GIỮ tên đề cho, để HIỆN bình thường, KHÔNG aux.
 - Lấy NHIỀU điểm phân biệt trên cùng đường tròn: point_on_circle có param∈[0,1] khác nhau.
+- ĐIỀU KIỆN GÓC trên đường tròn: "lấy điểm F trên (đường tròn/cung) sao cho ∠XYF = ∠UVW"
+  (đỉnh Y đã thuộc đường tròn) → point_on_circle_angle_transport(vertex=Y, from=X,
+  c=<đường tròn>, rA=U, rB=V, rC=W). Phải dựng đường tròn TRƯỚC (vd circle_through_3 /
+  circumcircle). TUYỆT ĐỐI KHÔNG dùng point_on_object cho điểm có ràng buộc GÓC (đó là
+  điểm tự do, sai vị trí). Quay một điểm theo góc SỐ độ cho trước → rotate_point.
 - Nếu đề cần thao tác KHÔNG có trong menu: xuất đúng một bước {{"op":"RAW","args":{{"note":"<mô tả>"}},"out":[]}}.
 
 MENU PRIMITIVE (đóng):
