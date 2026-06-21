@@ -1,0 +1,40 @@
+name: Regression (coverage_plans)
+
+# Bộ hồi quy TẤT ĐỊNH (không gọi LLM): compile plan → render qua ggb-service →
+# verifier Python + validator. Chạy mỗi push/PR đụng vào backend, và chạy tay được.
+# Render qua ggb-service đã deploy (Cloud Run, public). Đổi URL bằng repo variable
+# GGB_SERVICE_URL nếu cần; mặc định là service hiện tại.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "orchestrator/**"
+      - "ggb-service/**"
+      - ".github/workflows/regression.yml"
+  pull_request:
+    paths:
+      - "orchestrator/**"
+      - "ggb-service/**"
+      - ".github/workflows/regression.yml"
+  workflow_dispatch: {}
+
+jobs:
+  coverage-plans:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GGB_SERVICE_URL: ${{ vars.GGB_SERVICE_URL || 'https://ggb-service-ykjy5jjmfa-as.a.run.app' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r orchestrator/requirements.txt
+
+      - name: Run deterministic regression suite
+        working-directory: orchestrator
+        run: python -u -m scripts.coverage_plans
