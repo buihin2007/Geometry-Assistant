@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.ggb_client import GgbClient
 from app.primitives.compiler import validate_plan, compile_plan
 from app.agents.validator import validate
+from app.agents.geometry_verify import verify_relations
 
 
 def s(op, args, out):
@@ -81,6 +82,33 @@ CASES = {
  "X03 tiếp tuyến+OA∩BC": [P(0,0,"O"),s("circle_center_radius",{"O":"O","r":3},["c"]),P(8,1,"A"),
     s("tangent_from_point",{"P":"A","c":"c"},["B","Cc","tAB","tAC"]),s("segment",{"A":"O","B":"A"},["OA"]),
     s("segment",{"A":"B","B":"Cc"},["BC"]),s("intersect",{"obj1":"OA","obj2":"BC"},["H"])],
+
+ # ───── Cấu hình thi-chuyên (upgrade_plan §8) ─────
+ "QC01 hình thoi góc 70°+chéo": [P(0,0,"A"),P(6,0,"B"),s("rhombus_angle",{"A":"A","B":"B","angle":70},["C","D","poly"]),
+    s("diagonal",{"P":"A","Q":"C"},["AC"]),s("diagonal",{"P":"B","Q":"D"},["BD"]),s("intersect",{"obj1":"AC","obj2":"BD"},["O"])],
+ "QC02 hình vuông+2 chéo+O": [P(0,0,"A"),P(4,0,"B"),s("square",{"A":"A","B":"B"},["C","D","poly"]),
+    s("diagonal",{"P":"A","Q":"C"},["AC"]),s("diagonal",{"P":"B","Q":"D"},["BD"]),s("intersect",{"obj1":"AC","obj2":"BD"},["O"])],
+ "QC03 hình chữ nhật": [P(0,0,"A"),P(5,0,"B"),s("rectangle",{"A":"A","B":"B","h":3},["C","D","poly"])],
+ "QC04 hình thang cân": [P(0,0,"A"),P(8,0,"B"),s("isosceles_trapezoid",{"A":"A","B":"B","h":4,"lenCD":4},["C","D","poly"])],
+ "QC05 tứ giác nội tiếp": [P(0,0,"O"),s("circle_center_radius",{"O":"O","r":5},["c"]),
+    s("cyclic_quadrilateral",{"c":"c","t1":0.1,"t2":0.35,"t3":0.6,"t4":0.85},["A","B","C","D","poly"])],
+ "KC01 đtròn tiếp xúc 2 đường tại 2 điểm": [P(0,0,"A"),P(4,3,"P1"),s("line",{"A":"A","B":"P1"},["l1"]),
+    P(4,-3,"P2"),s("line",{"A":"A","B":"P2"},["l2"]),
+    s("circle_tangent_2lines_at_points",{"line1":"l1","P1":"P1","line2":"l2","P2":"P2"},["O","c"])],
+ "KC02 tiếp tuyến khác": [P(0,0,"O"),s("circle_center_radius",{"O":"O","r":3},["c"]),P(8,1,"Pp"),
+    s("tangent_from_point",{"P":"Pp","c":"c"},["B","Cc","t1","t2"]),s("line",{"A":"Pp","B":"B"},["known"]),
+    s("tangent_other_than",{"P":"Pp","c":"c","known":"known"},["t"])],
+ "KC03 đtròn đường kính AH": TRI+[s("altitude",{"vertex":"A","A":"A","B":"B","C":"C"},["H","AH"]),
+    s("circle_diameter",{"A":"A","B":"H"},["Oah","cah"])],
+ "XC02 F=chuyển góc (∠PAF=∠MAC)": [P(0,5,"A"),P(-4,0,"B"),P(6,0,"C"),s("triangle",{"A":"A","B":"B","C":"C"},["tri"]),
+    s("midpoint",{"A":"B","B":"C"},["M"]),s("midpoint",{"A":"C","B":"A"},["N"]),s("midpoint",{"A":"A","B":"B"},["Pp"]),
+    s("circumcircle",{"A":"A","B":"Pp","C":"N"},["Oapn","capn"]),
+    s("point_on_circle_angle_transport",{"vertex":"A","from":"Pp","c":"capn","rA":"M","rB":"A","rC":"C"},["F"])],
+ "XC04 (O1)(O2) tiếp xúc BC + K": [P(0,5,"A"),P(-4,0,"B"),P(6,0,"C"),s("triangle",{"A":"A","B":"B","C":"C"},["tri"]),
+    s("orthocenter",{"A":"A","B":"B","C":"C"},["H"]),s("line",{"A":"B","B":"C"},["bc"]),
+    s("circle_tangent_to_line_at",{"T":"B","line":"bc","P":"H"},["O1","c1"]),
+    s("circle_tangent_to_line_at",{"T":"C","line":"bc","P":"H"},["O2","c2"]),
+    s("second_intersection_two_circles",{"c1":"c1","c2":"c2","known":"H"},["K"])],
 }
 
 
@@ -96,6 +124,13 @@ async def main() -> int:
             r = await c.render(cmds, ["png"], checks=asr)
         except Exception as e:
             print(f"☐ fail   {name}: render {e}", flush=True); nfail += 1; continue
+        # Verifier Python (đọc tọa độ) là phán quyết chính, như pipeline (§5).
+        if asr:
+            py = verify_relations(asr, r.get("objects", []))
+            for chk in r.get("checkResults", []) or []:
+                pv = py.get(chk.get("expr"))
+                if pv is not None:
+                    chk["value"] = 1 if pv else 0
         v = validate(cmds, r)
         if not v.ok or not r.get("pngBase64"):
             print(f"☐ fail   {name}: {v.errors}", flush=True); nfail += 1
