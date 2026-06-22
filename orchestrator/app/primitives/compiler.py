@@ -69,9 +69,10 @@ def validate_plan(plan: list[dict]) -> list[str]:
             continue
         prim = PRIMITIVES[op]
 
-        # tham chiếu hợp lệ (string args phải đã định nghĩa trước)
+        # tham chiếu hợp lệ (string args phải đã định nghĩa trước, HOẶC là tên output
+        # của chính bước này — vd 'order' của parallelogram_named chứa tên điểm mới).
         for ref in _refs(args):
-            if ref not in known:
+            if ref not in known and ref not in out:
                 errors.append(f"{tag} tham chiếu `{ref}` chưa được định nghĩa trước đó")
 
         # ràng buộc tham số

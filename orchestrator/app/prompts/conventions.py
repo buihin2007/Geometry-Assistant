@@ -23,4 +23,8 @@ cân đối; điểm phụ thuộc tự đi theo):
     kính ⊥ BC nằm dọc Oy.
   • HÌNH THOI ABCD (không cho góc): dùng primitive rhombus_centered(p,q) — tâm O, chéo
     AC≡Ox, BD≡Oy, A,B kéo được.
+  • ĐIỂM/ĐỈNH CHÍNH trên đường tròn (vd "A trên (O)", đỉnh A nội tiếp): dùng
+    point_on_circle KHÔNG param ⇒ đặt ở ĐỈNH đường tròn (y≈+R, phía trên). Các điểm
+    là dây/đáy trên đường tròn (B,C): point_on_circle param đặt PHÍA DƯỚI (vd param
+    0.55 và 0.95 ⇒ hai bên dưới), để dây nằm dưới và đỉnh ở trên.
   • Tránh tọa độ làm hình suy biến / thẳng hàng."""

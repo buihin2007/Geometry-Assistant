@@ -332,7 +332,12 @@ def _point_on_circle(ar, o, aux):
              f"y(Center({c}))+Radius({c})*sin({ar['param']}*360°))"],
             [],
         )
-    return [f"{P}=Point({c})"], []
+    # Mặc định (không param): đặt ở ĐỈNH đường tròn (y = tâm + R) — quy ước "điểm/đỉnh
+    # trên đường tròn ở phía trên". Vẫn kéo được (Point(c)+SetCoords).
+    return (
+        [f"{P}=Point({c})", f"SetCoords({P},x(Center({c})),y(Center({c}))+Radius({c}))"],
+        [],
+    )
 
 
 def _point_on_arc(ar, o, aux):
@@ -375,6 +380,24 @@ def _parallelogram(ar, o, aux):
         [f"{D}={ar['A']}+({ar['C']}-{ar['B']})",
          f"{poly}=Polygon({ar['A']},{ar['B']},{ar['C']},{D})"],
         [f"AreParallel(Line({ar['A']},{ar['B']}),Line({D},{ar['C']}))"],
+    )
+
+
+def _parallelogram_named(ar, o, aux):
+    # Hình bình hành theo ĐÚNG chuỗi thứ tự tên 'order' (4 tên, vòng quanh), 'new' = điểm
+    # MỚI cần tính (một trong 4). Tất định: trong vòng, new = (đỉnh trước) + (đỉnh sau) −
+    # (đỉnh đối). Planner CHỈ cần copy đúng thứ tự chữ + nói điểm nào mới (không tự suy luận
+    # đỉnh đối). VD order=[A,P,B,C], new=P → trước A, sau B, đối C → P=A+B−C; Polygon(A,P,B,C).
+    order = ar["order"]
+    new = ar["new"]
+    poly = o[1]
+    i = order.index(new)
+    bef, aft, opp = order[(i - 1) % 4], order[(i + 1) % 4], order[(i + 2) % 4]
+    return (
+        [f"{new}={bef}+{aft}-{opp}",
+         f"{poly}=Polygon({','.join(order)})"],
+        [f"AreParallel(Line({order[0]},{order[1]}),Line({order[3]},{order[2]}))",
+         f"AreParallel(Line({order[1]},{order[2]}),Line({order[0]},{order[3]}))"],
     )
 
 
@@ -855,6 +878,14 @@ reg(Primitive("parallelogram", ["A", "B", "C"], 2, "Hình bình hành ABCD (D=A+
               _parallelogram, [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 5, "y": 0}, ["B"]),
               _s("point_free", {"x": 6, "y": 3}, ["C"]),
               _s("parallelogram", {"A": "A", "B": "B", "C": "C"}, ["D", "poly"])]))
+reg(Primitive("parallelogram_named", ["order", "new"], 2,
+              "Hình bình hành theo ĐÚNG chuỗi thứ tự tên (order=4 tên vòng quanh, new=điểm "
+              "mới cần tính): tự tính điểm mới + vẽ đa giác đúng vòng. Planner chỉ copy thứ tự chữ.",
+              "thêm điểm để 4 đỉnh THEO ĐÚNG THỨ TỰ CHỮ là hình bình hành (ABPC, APBC, AMBN…)",
+              _parallelogram_named,
+              [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 6, "y": 0}, ["B"]),
+               _s("point_free", {"x": 2, "y": 4}, ["C"]),
+               _s("parallelogram_named", {"order": ["A", "P", "B", "C"], "new": "P"}, ["P", "poly"])]))
 reg(Primitive("parallelogram_4th", ["before", "opposite", "after"], 2,
               "ĐIỂM thứ tư của hình bình hành theo ĐÚNG thứ tự tên: điểm mới giữa before&after, "
               "đối diện opposite (=before+after−opposite) + đa giác đúng vòng",

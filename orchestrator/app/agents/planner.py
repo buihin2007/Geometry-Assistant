@@ -174,12 +174,12 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   "hình thoi ABCD góc BAD = X°"→rhombus_angle(A,B,angle=X); "hình thoi" KHÔNG cho góc→
   rhombus_centered(p,q) (QUY ƯỚC: tâm O, AC≡Ox, BD≡Oy, A,B kéo được — ƯU TIÊN dùng cái
   này cho hình thoi thường). "hình bình hành"→parallelogram. ★ THÊM ĐIỂM cho 4 đỉnh
-  THEO ĐÚNG THỨ TỰ CHỮ thành hình bình hành (vd "thêm P sao cho ABPC là hbh" — thứ tự
-  vòng A→B→P→C, KHÁC ABCP!): parallelogram_4th(before,opposite,after) với điểm-mới nằm
-  GIỮA before&after và ĐỐI DIỆN opposite theo thứ tự tên. VD ABPC, P mới: before=B,
-  opposite=A, after=C ⇒ P=B+C−A, vẽ đúng vòng; đường chéo ABPC là AP và BC. LUÔN đọc kỹ
-  THỨ TỰ CHỮ CÁI của tên tứ giác để biết đỉnh nào đối nhau. "hình
-  chữ nhật"→rectangle; "hình vuông"→square; "hình thang cân"→isosceles_trapezoid(A,B,h,
+  THEO ĐÚNG THỨ TỰ CHỮ thành hình bình hành (vd "thêm P sao cho APBC là hbh"):
+  parallelogram_named(order=[…4 chữ ĐÚNG Y NGUYÊN thứ tự trong đề…], new="<điểm mới>").
+  CHỈ COPY thứ tự chữ cái từ tên tứ giác trong đề, KHÔNG tự sắp lại, KHÔNG tự quy về ABCD.
+  VD đề "APBC" ⇒ order=["A","P","B","C"], new="P" (hệ tự tính P=A+B−C, vẽ đúng vòng APBC,
+  đường chéo AB và PC). Đề "ABPC" ⇒ order=["A","B","P","C"]. out=[<điểm mới>, "poly"].
+  "hình chữ nhật"→rectangle; "hình vuông"→square; "hình thang cân"→isosceles_trapezoid(A,B,h,
   lenCD) (AB đáy lớn, chọn lenCD<|AB|); "hình thang" thường→trapezoid; "hình diều / 2 cặp
   cạnh kề bằng, trục là đường chéo AC"→kite(A,C,B); "tứ giác ABCD nội tiếp (O)"→
   cyclic_quadrilateral(c, t1<t2<t3<t4 ∈[0,1]).
