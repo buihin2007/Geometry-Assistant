@@ -60,9 +60,16 @@ def repair_distance_constraints(
         if uu < 1e-9:
             continue
         ux, uy = ux / uu, uy / uu
+        # THIÊN VỀ PHÍA TRÊN: cộng vector hướng lên để A nằm NỬA TRÊN (đỉnh) chứ không
+        # rơi xuống cạnh/đáy — vẫn giữ thành phần ngang về phía 'near' nên AB<AC vẫn đúng.
+        bx, by = ux, uy + 1.0
+        bn = math.hypot(bx, by)
+        if bn < 0.1:  # near ngay dưới far → bỏ thiên hướng, dùng hướng ngang
+            bx, by, bn = ux, uy, 1.0
+        bx, by = bx / bn, by / bn
         if r is None:
             r = math.hypot(n.x - O.x, n.y - O.y)
-        tx, ty = O.x + r * ux, O.y + r * uy  # điểm trên đtròn nghiêng hẳn phía 'near'
+        tx, ty = O.x + r * bx, O.y + r * by  # trên đtròn: phía 'near' và NỬA TRÊN
         cmds.append(f"SetCoords({P},{tx:.6f},{ty:.6f})")
         changed = True
 

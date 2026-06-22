@@ -341,17 +341,18 @@ def _point_on_circle(ar, o, aux):
 
 
 def _point_on_arc(ar, o, aux):
-    # Điểm KÉO ĐƯỢC trên cung tròn A→B (tâm O, ngược chiều kim đồng hồ). Đặt ban đầu ở
-    # GIỮA cung (Point(arc,0.5) làm mốc) rồi SetCoords để điểm chính vẫn KÉO ĐƯỢC và
-    # KHÔNG rơi vào đầu mút (tránh trùng A/B). Cung + mốc là aux (ẩn).
-    E = o[0]
-    arc, mid = aux(), aux()
+    # Điểm KÉO ĐƯỢC trên đường tròn (tâm O, qua hai đầu mút cung), ĐẶT BAN ĐẦU Ở ĐỈNH
+    # (điểm cao nhất, y = tâm + R) theo quy ước "điểm trên cung lớn / đỉnh ở phía trên".
+    # KHÔNG dùng CircularArc(O,A,B) làm vị trí vì chiều CCW của nó có thể ra cung DƯỚI
+    # → điểm rơi xuống đáy. Kéo được trên cả đường tròn; ràng buộc "sao cho" (nếu có)
+    # sẽ tinh chỉnh sang đúng phía mà vẫn giữ nửa trên.
+    E, O, A = o[0], ar["O"], ar["A"]
+    c = aux()
     return (
-        [f"{arc}=CircularArc({ar['O']},{ar['A']},{ar['B']})",
-         f"{mid}=Point({arc},0.5)",
-         f"{E}=Point({arc})",
-         f"SetCoords({E},x({mid}),y({mid}))"],
-        [f"AreEqual(Distance({E},{ar['O']}),Distance({ar['A']},{ar['O']}))"],
+        [f"{c}=Circle({O},{A})",
+         f"{E}=Point({c})",
+         f"SetCoords({E},x({O}),y({O})+Distance({O},{A}))"],
+        [f"AreEqual(Distance({E},{O}),Distance({A},{O}))"],
     )
 
 
