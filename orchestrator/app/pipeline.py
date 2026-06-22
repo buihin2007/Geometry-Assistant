@@ -8,9 +8,10 @@ from .llm.factory import make_provider
 from .agents.generator import Generator, is_complex
 from .agents.planner import Planner
 from .agents.validator import validate
-from .agents.geometry_verify import verify_relations
+from .agents.geometry_verify import verify_relations, check_constraints
+from .agents.constraint_repair import repair_distance_constraints
 from .agents.reviewer import Reviewer
-from .primitives.compiler import validate_plan, compile_plan, valid_prefix
+from .primitives.compiler import validate_plan, compile_plan, valid_prefix, extract_constraints
 
 
 @dataclass
@@ -152,15 +153,17 @@ class Pipeline:
                     continue
                 prev_plan = plan
                 commands, asserts = compile_plan(plan)
+                constraints = extract_constraints(plan)  # ràng buộc "sao cho"
                 res.log.append(
                     f"[round {round_idx}] planner→compiler: {len(plan)} bước → "
-                    f"{len(commands)} lệnh, {len(asserts)} assert"
+                    f"{len(commands)} lệnh, {len(asserts)} assert, {len(constraints)} ràng buộc"
                 )
             else:
                 self._charge_llm(res)
                 commands, asserts = await self.generator.generate(
                     problem, previous=commands or None, feedback=feedback, analysis=analysis
                 )
+                constraints = []
                 res.log.append(
                     f"[round {round_idx}] generator → {len(commands)} lệnh, {len(asserts)} assert"
                 )
@@ -168,33 +171,37 @@ class Pipeline:
 
             # --- Render (không tốn LLM) — kèm asserts để kiểm quan hệ đề nêu tên ---
             render = await self.ggb.render(commands, render_formats, checks=asserts)
+            self._apply_python_relations(render, asserts)
+
+            # --- Ràng buộc "sao cho" (bất đẳng thức/thứ tự): verify từ tọa độ; nếu vi
+            #     phạm, SỬA CƠ HỌC (tất định) rồi render lại — ưu tiên trước khi tốn LLM. ---
+            con_errors: list[str] = []
+            if constraints:
+                bad = [c for c in check_constraints(constraints, render.get("objects", [])) if c["ok"] is False]
+                if bad:
+                    new_cmds, changed = repair_distance_constraints(commands, bad, render.get("objects", []))
+                    if changed:
+                        commands = new_cmds
+                        res.commands = commands
+                        render = await self.ggb.render(commands, render_formats, checks=asserts)
+                        self._apply_python_relations(render, asserts)
+                        bad = [c for c in check_constraints(constraints, render.get("objects", [])) if c["ok"] is False]
+                        res.log.append(f"[round {round_idx}] sửa cơ học ràng buộc → còn vi phạm: {len(bad)}")
+                    for c in bad:
+                        con_errors.append(
+                            f"Ràng buộc {c['lhs']} {c['rel']} {c['rhs']} CHƯA thỏa "
+                            f"(đo được {c['lv']:.2f} vs {c['rv']:.2f}). Đặt điểm vào vùng thỏa điều kiện."
+                        )
+
             res.png_base64 = render.get("pngBase64")
             res.svg = render.get("svg")
             res.ggb_base64 = render.get("ggbBase64")
 
-            # --- Verifier quan hệ Python (đọc tọa độ) là PHÁN QUYẾT CHÍNH; GeoGebra
-            #     chỉ fallback cho assert Python chưa kết luận (upgrade_plan §5). Không
-            #     loại oan hình đúng: Python trả None → giữ kết quả GeoGebra. ---
-            if asserts:
-                py = verify_relations(asserts, render.get("objects", []))
-                n_py, n_disagree = 0, 0
-                for chk in render.get("checkResults", []) or []:
-                    v = py.get(chk.get("expr"))
-                    if v is None:
-                        continue
-                    n_py += 1
-                    ggb = chk.get("value")
-                    if ggb is not None and (ggb == 1) != bool(v):
-                        n_disagree += 1
-                    chk["value"] = 1 if v else 0  # Python authoritative
-                if n_py:
-                    res.log.append(
-                        f"[round {round_idx}] verify Python: {n_py}/{len(asserts)} assert "
-                        f"(còn lại fallback GeoGebra); bất đồng với GeoGebra: {n_disagree}"
-                    )
-
-            # --- Technical Validator (deterministic) ---
+            # --- Technical Validator (deterministic) + ràng buộc "sao cho" ---
             vr = validate(commands, render)
+            if con_errors:
+                vr.errors.extend(con_errors)
+                vr.ok = False
             if not vr.ok:
                 feedback = "Lỗi kỹ thuật khi dựng hình:\n" + vr.feedback_text()
                 res.log.append(f"[round {round_idx}] validator FAIL: {len(vr.errors)} lỗi")
@@ -265,6 +272,17 @@ class Pipeline:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         except Exception:
             pass
+
+    def _apply_python_relations(self, render: dict, asserts: list[str]) -> None:
+        """Verifier quan hệ Python (đọc tọa độ) là PHÁN QUYẾT CHÍNH; GeoGebra fallback
+        cho assert Python chưa kết luận (upgrade_plan §5). Ghi đè checkResults tại chỗ."""
+        if not asserts:
+            return
+        py = verify_relations(asserts, render.get("objects", []))
+        for chk in render.get("checkResults", []) or []:
+            v = py.get(chk.get("expr"))
+            if v is not None:
+                chk["value"] = 1 if v else 0
 
     def _charge_llm(self, res: PipelineResult) -> None:
         # Trần chi phí cứng (PLAN §5 / §13) — chặn request lỗi lặp nuốt quota.

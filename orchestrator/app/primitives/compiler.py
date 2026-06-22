@@ -60,8 +60,9 @@ def validate_plan(plan: list[dict]) -> list[str]:
         out = st.get("out", []) or []
         tag = f"[#{i} {op}]"
 
-        if op == "RAW":
-            # Escape hatch: chuyển pipeline thô; không validate sâu.
+        if op in ("RAW", "REQUIRE"):
+            # RAW: escape hatch. REQUIRE: ràng buộc "sao cho" (đánh giá ở verifier, không
+            # sinh lệnh). Bỏ qua ở đây.
             continue
         if op not in PRIMITIVES:
             errors.append(f"{tag} op không có trong menu primitive")
@@ -101,6 +102,9 @@ def valid_prefix(plan: list[dict]) -> tuple[list[dict], str | None]:
         op = st.get("op")
         args = st.get("args", {}) or {}
         out = st.get("out", []) or []
+        if op == "REQUIRE":
+            prefix.append(st)  # ràng buộc không phải bước dựng, giữ nguyên trong prefix
+            continue
         if op == "RAW":
             note = (args.get("note") or "thao tác ngoài thư viện").strip()
             return prefix, f"bước '{note}' (chưa có primitive tương ứng)"
@@ -115,6 +119,19 @@ def valid_prefix(plan: list[dict]) -> tuple[list[dict], str | None]:
             known.add(name)
         prefix.append(st)
     return prefix, None
+
+
+def extract_constraints(plan: list[dict]) -> list[dict]:
+    """Lấy các ràng buộc 'sao cho' planner trích ra: op REQUIRE với {rel,lhs,rhs}.
+    rel ∈ lt|gt|le|ge|eq. lhs/rhs là biểu thức verifier đọc được (Distance/Angle/số)."""
+    out = []
+    for st in plan:
+        if st.get("op") != "REQUIRE":
+            continue
+        a = st.get("args", {}) or {}
+        if a.get("rel") and a.get("lhs") and a.get("rhs"):
+            out.append({"rel": a["rel"], "lhs": a["lhs"], "rhs": a["rhs"]})
+    return out
 
 
 def compile_plan(plan: list[dict]) -> tuple[list[str], list[str]]:

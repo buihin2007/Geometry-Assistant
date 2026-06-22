@@ -321,22 +321,31 @@ def _second_intersection(ar, o, aux):
 
 
 def _point_on_circle(ar, o, aux):
-    # param∈[0,1] đặt điểm tại vị trí xác định trên đường tròn (để lấy NHIỀU điểm
-    # phân biệt; nếu thiếu, Point(c) mặc định cùng một chỗ ⇒ dễ trùng điểm).
+    # Điểm KÉO ĐƯỢC trên đường tròn. param∈[0,1] = vị trí ban đầu theo góc (param*360°)
+    # để lấy NHIỀU điểm phân biệt. Dùng Point(c)+SetCoords (KHÔNG Point(c,param) vì param
+    # cố định làm điểm KHÔNG kéo được). SetCoords snap về đường tròn, vẫn kéo dọc được.
+    P, c = o[0], ar["c"]
     if "param" in ar:
-        return [f"{o[0]}=Point({ar['c']},{ar['param']})"], []
-    return [f"{o[0]}=Point({ar['c']})"], []
+        return (
+            [f"{P}=Point({c})",
+             f"SetCoords({P},x(Center({c}))+Radius({c})*cos({ar['param']}*360°),"
+             f"y(Center({c}))+Radius({c})*sin({ar['param']}*360°))"],
+            [],
+        )
+    return [f"{P}=Point({c})"], []
 
 
 def _point_on_arc(ar, o, aux):
-    # Điểm KÉO ĐƯỢC trên cung tròn A→B (tâm O, ngược chiều kim đồng hồ từ A tới B).
-    # Dùng cho "lấy điểm di động trên cung..." (bài quỹ tích / cực trị): điểm là
-    # Point(cung) ⇒ người dùng kéo dọc đúng cung. Cung là aux (đường tròn đã hiện).
+    # Điểm KÉO ĐƯỢC trên cung tròn A→B (tâm O, ngược chiều kim đồng hồ). Đặt ban đầu ở
+    # GIỮA cung (Point(arc,0.5) làm mốc) rồi SetCoords để điểm chính vẫn KÉO ĐƯỢC và
+    # KHÔNG rơi vào đầu mút (tránh trùng A/B). Cung + mốc là aux (ẩn).
     E = o[0]
-    arc = aux()
+    arc, mid = aux(), aux()
     return (
         [f"{arc}=CircularArc({ar['O']},{ar['A']},{ar['B']})",
-         f"{E}=Point({arc})"],
+         f"{mid}=Point({arc},0.5)",
+         f"{E}=Point({arc})",
+         f"SetCoords({E},x({mid}),y({mid}))"],
         [f"AreEqual(Distance({E},{ar['O']}),Distance({ar['A']},{ar['O']}))"],
     )
 

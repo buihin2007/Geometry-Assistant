@@ -354,3 +354,38 @@ def verify_relations(asserts: list[str], objects: list[dict]) -> dict[str, bool 
     """Map expr → verdict Python (True/False/None)."""
     geo = build_geometry(objects)
     return {expr: evaluate_assert(expr, geo) for expr in asserts}
+
+
+def evaluate_value(expr: str, geo: dict[str, object]) -> float | None:
+    """Trị SỐ của biểu thức (Distance/Angle/số/biểu thức số học) hoặc None nếu không tính được."""
+    try:
+        node = _Parser(_tokenize(expr)).parse()
+        v = _Eval(geo).ev(node)
+        return float(v) if isinstance(v, (int, float)) else None
+    except Inconclusive:
+        return None
+    except Exception:
+        return None
+
+
+def check_constraints(constraints: list[dict], objects: list[dict]) -> list[dict]:
+    """Kiểm ràng buộc 'sao cho' (bất đẳng thức/độ dài/góc) từ TỌA ĐỘ.
+    Trả list dict gốc + {ok: True/False/None, lv, rv} (None = chưa kết luận được)."""
+    geo = build_geometry(objects)
+    out = []
+    for c in constraints:
+        lv = evaluate_value(c["lhs"], geo)
+        rv = evaluate_value(c["rhs"], geo)
+        ok = None
+        if lv is not None and rv is not None:
+            tol = 1e-7 * (1 + abs(rv))
+            rel = c["rel"]
+            ok = {
+                "lt": lv < rv - tol,
+                "gt": lv > rv + tol,
+                "le": lv <= rv + tol,
+                "ge": lv >= rv - tol,
+                "eq": abs(lv - rv) <= tol,
+            }.get(rel)
+        out.append({**c, "ok": ok, "lv": lv, "rv": rv})
+    return out

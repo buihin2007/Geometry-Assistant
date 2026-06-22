@@ -135,6 +135,13 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   CHỈ dựng điểm bằng công thức/giao điểm khi đề GHIM nó bằng điều kiện cụ thể (trung
   điểm, giao điểm, góc = …, cách … một khoảng, đối xứng…). "Lấy điểm E trên cung AC"
   KHÔNG có điều kiện ghim ⇒ point_on_arc, TUYỆT ĐỐI không Rotate/Reflect/Angle để ép.
+- RÀNG BUỘC "SAO CHO" (bất đẳng thức/thứ tự vị trí điểm — KHÔNG ĐƯỢC BỎ QUA): khi đề
+  "lấy điểm P trên ... SAO CHO [điều kiện]" (vd AB<AC, MA>MB, OP≤R), NGOÀI bước dựng P
+  (điểm trên path), THÊM một bước ghi ràng buộc máy-đọc:
+    {{"op":"REQUIRE","args":{{"rel":"lt","lhs":"Distance(A,B)","rhs":"Distance(A,C)"}}}}
+  rel ∈ lt|gt|le|ge|eq; lhs/rhs dùng Distance(...)/Angle(...)/số. CỐ đặt P vào vùng thỏa
+  ngay (P gần X hơn Y ⇒ đặt P phía X so với trung trực XY). Hệ sẽ tự verify từ tọa độ và
+  SỬA CƠ HỌC nếu lệch — nhưng BẮT BUỘC phải xuất bước REQUIRE để hệ biết điều kiện.
 - ĐIỂM THUỘC đối tượng: điểm nêu nằm TRÊN đường tròn/đường (đầu mút DÂY cung, điểm trên
   (O), tiếp điểm, đỉnh trên đường tròn…) PHẢI dựng bằng point_on_circle(c)/point_on_object,
   KHÔNG point_free — để nó THẬT SỰ nằm trên đối tượng và kéo dọc được. VD "dây BC của (O)":

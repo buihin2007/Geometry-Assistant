@@ -67,6 +67,9 @@
         try {
           // evalCommand trả về true nếu thành công với mọi mệnh đề.
           ok = a.evalCommand(cmd) === true;
+          // Lệnh scripting void (SetCoords/SetValue/SetVisibleInView…) THỰC THI nhưng
+          // evalCommand trả false — coi là OK nếu không ném lỗi (nếu sai ref sẽ throw).
+          if (!ok && /^\s*Set[A-Z]\w*\s*\(/.test(cmd)) ok = true;
         } catch (e) {
           ok = false;
           error = String(e && e.message ? e.message : e);

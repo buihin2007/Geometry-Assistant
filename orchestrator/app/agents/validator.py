@@ -145,6 +145,23 @@ def validate(commands: list[str], render: dict) -> ValidationResult:
     #    còn là đường chéo. Đọc tọa độ điểm từ render (đã export hình học).
     errors.extend(_check_quad_order(commands, objects))
 
+    # 6) Điểm TRÙNG nhau (suy biến): vd A rơi đúng vào B khi đặt điểm trên cung. Chỉ
+    #    xét điểm hiển thị có tên (bỏ aux). Khoảng cách ~0 ⇒ lỗi.
+    named = {
+        o["name"]: (float(o["x"]), float(o["y"]))
+        for o in objects
+        if (o.get("type") or "").lower() == "point" and o.get("x") is not None
+        and not _base(o["name"]).startswith("aux")
+    }
+    items = list(named.items())
+    for i in range(len(items)):
+        for j in range(i + 1, len(items)):
+            (n1, p1), (n2, p2) = items[i], items[j]
+            if abs(p1[0] - p2[0]) < 1e-4 and abs(p1[1] - p2[1]) < 1e-4:
+                errors.append(
+                    f"Hai điểm `{n1}` và `{n2}` TRÙNG nhau (suy biến) — đặt lại để chúng phân biệt."
+                )
+
     # (Đã bỏ cảnh báo "nét thừa" cho đường vô hạn hiển thị: đường do ĐỀ NÊU TÊN — như
     #  "đường thẳng d" — cần được HIỆN. Việc ẩn công cụ trung gian do planner quyết
     #  định qua quy ước đặt tên aux*, không ép ở validator.)
