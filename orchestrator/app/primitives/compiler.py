@@ -60,9 +60,9 @@ def validate_plan(plan: list[dict]) -> list[str]:
         out = st.get("out", []) or []
         tag = f"[#{i} {op}]"
 
-        if op in ("RAW", "REQUIRE"):
-            # RAW: escape hatch. REQUIRE: ràng buộc "sao cho" (đánh giá ở verifier, không
-            # sinh lệnh). Bỏ qua ở đây.
+        if op in ("RAW", "REQUIRE", "ORIENT"):
+            # RAW: escape hatch. REQUIRE: ràng buộc "sao cho". ORIENT: gợi ý định hướng
+            # (base/apex) cho hậu xử lý xoay-lật. Không sinh lệnh — bỏ qua ở đây.
             continue
         if op not in PRIMITIVES:
             errors.append(f"{tag} op không có trong menu primitive")
@@ -102,8 +102,8 @@ def valid_prefix(plan: list[dict]) -> tuple[list[dict], str | None]:
         op = st.get("op")
         args = st.get("args", {}) or {}
         out = st.get("out", []) or []
-        if op == "REQUIRE":
-            prefix.append(st)  # ràng buộc không phải bước dựng, giữ nguyên trong prefix
+        if op in ("REQUIRE", "ORIENT"):
+            prefix.append(st)  # không phải bước dựng, giữ nguyên trong prefix
             continue
         if op == "RAW":
             note = (args.get("note") or "thao tác ngoài thư viện").strip()
@@ -132,6 +132,20 @@ def extract_constraints(plan: list[dict]) -> list[dict]:
         if a.get("rel") and a.get("lhs") and a.get("rhs"):
             out.append({"rel": a["rel"], "lhs": a["lhs"], "rhs": a["rhs"]})
     return out
+
+
+def extract_orient(plan: list[dict]) -> dict | None:
+    """Lấy gợi ý ĐỊNH HƯỚNG: op ORIENT với {base:[P,Q], apex:R}. Dùng cho hậu xử lý
+    xoay base về ngang-dưới, lật apex lên trên (giữ nguyên quan hệ)."""
+    for st in plan:
+        if st.get("op") != "ORIENT":
+            continue
+        a = st.get("args", {}) or {}
+        base = a.get("base")
+        apex = a.get("apex")
+        if isinstance(base, list) and len(base) == 2 and apex:
+            return {"base": [str(base[0]), str(base[1])], "apex": str(apex)}
+    return None
 
 
 def compile_plan(plan: list[dict]) -> tuple[list[str], list[str]]:

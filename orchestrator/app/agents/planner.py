@@ -135,6 +135,14 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   CHỈ dựng điểm bằng công thức/giao điểm khi đề GHIM nó bằng điều kiện cụ thể (trung
   điểm, giao điểm, góc = …, cách … một khoảng, đối xứng…). "Lấy điểm E trên cung AC"
   KHÔNG có điều kiện ghim ⇒ point_on_arc, TUYỆT ĐỐI không Rotate/Reflect/Angle để ép.
+- ĐỊNH HƯỚNG (ORIENT) — TỔNG QUÁT cho mọi đề có ĐOẠN NỀN + ĐỈNH (không chỉ "tam giác"):
+  thêm một bước {{"op":"ORIENT","args":{{"base":["B","C"],"apex":"A"}}}} với:
+  • base = hai đầu ĐOẠN NỀN: dây/đường kính "cố định" hoặc nêu sớm (dây BC, đường kính
+    MN/AK), hoặc cạnh đối đỉnh chính (BC đối A), hoặc đoạn nối hai điểm gốc dựng đầu.
+  • apex = ĐỈNH chính / điểm "trên cung" / điểm ở phần trên (A, điểm trên nửa đtròn…).
+  Hệ tự xoay base về NGANG-DƯỚI và lật apex lên TRÊN (giữ nguyên quan hệ). LUÔN thêm
+  ORIENT khi xác định được nền+đỉnh (tam giác nội tiếp, (O)+dây+điểm trên cung, nửa
+  đường tròn, đề có đường kính…). Đa giác không có nền/đỉnh rõ (hình thoi…) thì BỎ QUA.
 - RÀNG BUỘC "SAO CHO" (bất đẳng thức/thứ tự vị trí điểm — KHÔNG ĐƯỢC BỎ QUA): khi đề
   "lấy điểm P trên ... SAO CHO [điều kiện]" (vd AB<AC, MA>MB, OP≤R), NGOÀI bước dựng P
   (điểm trên path), THÊM một bước ghi ràng buộc máy-đọc:

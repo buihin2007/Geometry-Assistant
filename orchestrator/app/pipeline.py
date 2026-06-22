@@ -10,8 +10,11 @@ from .agents.planner import Planner
 from .agents.validator import validate
 from .agents.geometry_verify import verify_relations, check_constraints
 from .agents.constraint_repair import repair_distance_constraints
+from .agents.orient import apply_orientation
 from .agents.reviewer import Reviewer
-from .primitives.compiler import validate_plan, compile_plan, valid_prefix, extract_constraints
+from .primitives.compiler import (
+    validate_plan, compile_plan, valid_prefix, extract_constraints, extract_orient,
+)
 
 
 @dataclass
@@ -154,6 +157,7 @@ class Pipeline:
                 prev_plan = plan
                 commands, asserts = compile_plan(plan)
                 constraints = extract_constraints(plan)  # ràng buộc "sao cho"
+                orient = extract_orient(plan)  # gợi ý định hướng base/apex
                 res.log.append(
                     f"[round {round_idx}] planner→compiler: {len(plan)} bước → "
                     f"{len(commands)} lệnh, {len(asserts)} assert, {len(constraints)} ràng buộc"
@@ -164,6 +168,7 @@ class Pipeline:
                     problem, previous=commands or None, feedback=feedback, analysis=analysis
                 )
                 constraints = []
+                orient = None
                 res.log.append(
                     f"[round {round_idx}] generator → {len(commands)} lệnh, {len(asserts)} assert"
                 )
@@ -192,6 +197,17 @@ class Pipeline:
                             f"Ràng buộc {c['lhs']} {c['rel']} {c['rhs']} CHƯA thỏa "
                             f"(đo được {c['lv']:.2f} vs {c['rv']:.2f}). Đặt điểm vào vùng thỏa điều kiện."
                         )
+
+            # --- ĐỊNH HƯỚNG TỔNG QUÁT: xoay base về ngang-dưới, lật apex lên trên (phép
+            #     biến hình CỨNG, giữ nguyên quan hệ). Chỉ khi planner gắn role base/apex. ---
+            if orient and not con_errors:
+                ot = apply_orientation(commands, orient["base"], orient["apex"], render.get("objects", []))
+                if ot != commands:
+                    commands = ot
+                    res.commands = commands
+                    render = await self.ggb.render(commands, render_formats, checks=asserts)
+                    self._apply_python_relations(render, asserts)
+                    res.log.append(f"[round {round_idx}] định hướng lại (base ngang dưới, apex trên)")
 
             res.png_base64 = render.get("pngBase64")
             res.svg = render.get("svg")
