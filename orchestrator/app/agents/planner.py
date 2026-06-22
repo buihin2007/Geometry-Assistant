@@ -2,6 +2,7 @@ import json
 import re
 from ..llm.base import LLMProvider
 from ..primitives.menu import build_menu
+from ..prompts.conventions import CONVENTIONS
 
 # Planner (LLM) — đặc tả PHẦN 2. Nhận đề + MENU đóng → xuất PLAN (JSON statements).
 # KHÔNG viết lệnh GeoGebra thô; chỉ chọn primitive & nối tham chiếu.
@@ -103,18 +104,7 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
 - args: giá trị là TÊN output đã định nghĩa ở bước trước (string) HOẶC số literal
   (x,y,t,r,h,index). out: danh sách tên đối tượng tạo ra (đặt tên theo đề: A,B,C,O,M...).
 - Điểm phụ thuộc để primitive tự tính, KHÔNG tự đoán tọa độ.
-- ★ QUY ƯỚC ĐẶT HÌNH (đặt tọa độ point_free theo các quy ước sau để hình "đúng kiểu",
-  cân đối; điểm phụ thuộc tự đi theo):
-  • TỔNG QUÁT: đoạn/cạnh đáy/DÂY cung ĐẦU TIÊN đặt NẰM NGANG (∥ Ox, hai đầu cùng y),
-    ĐỐI XỨNG qua Oy (x đối nhau: -a và a), và y ÂM. VD đáy/ dây: (-3,-2) và (3,-2).
-  • TAM GIÁC ABC: BC là ĐÁY ngang dưới (B=(-3,-2), C=(3,-2)); A là ĐỈNH ở TRÊN, y dương
-    (vd A=(-1,3) cho cân/lệch tùy đề; cân tại A thì A=(0,3) trên Oy). KHÔNG đặt A ở đáy.
-  • ĐƯỜNG TRÒN có DÂY/CUNG BC: tâm O=(0,0); B,C đối xứng qua Oy và NẰM DƯỚI O (y âm),
-    cách O vừa phải để BC không quá ngắn (vd trên đường tròn bán kính ~5 thì B,C khoảng
-    y=-4). Đường kính ⊥ BC sẽ nằm dọc Oy.
-  • HÌNH THOI ABCD: dùng primitive đặt TÂM tại O, đường chéo AC ≡ Ox, BD ≡ Oy
-    (xem menu: nếu có rhombus theo trục thì ưu tiên).
-  • Tránh tọa độ làm hình suy biến/thẳng hàng.
+{CONVENTIONS}
 - Quy tắc chọn: "điểm trên đoạn/tia có vị trí"→point_on_segment/point_on_ray_beyond;
   "lấy điểm trên..." không vị trí→point_on_object/point_on_circle; "tiếp tuyến từ điểm
   ngoài"→tangent_from_point; "tiếp tuyến tại điểm trên đường tròn"→tangent_at_point;
