@@ -48,6 +48,12 @@ def apply_orientation(commands: list[str], base, apex: str, objects: list[dict])
     if ary < amy:
         gamma += math.pi
 
+    # ĐÃ ĐÚNG HƯỚNG SẴN (base ~ngang, apex ~trên) ⇒ quay ≈ 0 ⇒ KHỎI biến hình + render
+    # lại (tiết kiệm 1 lần render — phần lớn hình nhờ quy ước layout đã đặt đúng sẵn).
+    g = (gamma + math.pi) % (2 * math.pi) - math.pi
+    if abs(g) < 0.01:
+        return commands
+
     def tp(x, y):
         return rotate(x, y, gamma)
 
