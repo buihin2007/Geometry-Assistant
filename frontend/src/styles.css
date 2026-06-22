@@ -134,6 +134,9 @@ button.secondary { background: transparent; border-color: var(--accent-2); color
 .ggb-target > * { width: 100% !important; height: 100% !important; }
 .ggb-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #333; z-index: 1; }
 
+.grid-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); align-self: flex-start; cursor: pointer; }
+.grid-toggle input { accent-color: var(--accent); cursor: pointer; }
+
 .export-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .export-msg { font-size: 13px; color: var(--accent-2); }
 

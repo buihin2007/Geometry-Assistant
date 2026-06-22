@@ -37,7 +37,7 @@ function parseCircle(valueString) {
   return { cx, cy, r: Math.sqrt(r2) };
 }
 
-const GeoGebraView = forwardRef(function GeoGebraView({ commands }, ref) {
+const GeoGebraView = forwardRef(function GeoGebraView({ commands, gridVisible = true }, ref) {
   const wrapRef = useRef(null); // hộp đo kích thước (khít container cha)
   const targetRef = useRef(null); // chỗ inject applet
   const appletRef = useRef(null);
@@ -207,6 +207,7 @@ const GeoGebraView = forwardRef(function GeoGebraView({ commands }, ref) {
           appletRef.current = api;
           setReady(true);
           sizeToContainer();
+          try { api.setGridVisible(gridVisible); } catch (e) {}
           if (commands && commands.length) loadCommands(api, commands);
         },
       };
@@ -281,6 +282,13 @@ const GeoGebraView = forwardRef(function GeoGebraView({ commands }, ref) {
     if (!ready || !api || !commands || commands.length === 0) return;
     loadCommands(api, commands);
   }, [commands, ready, loadCommands]);
+
+  // Bật/tắt LƯỚI theo lựa chọn người dùng.
+  useEffect(() => {
+    const api = appletRef.current;
+    if (!ready || !api) return;
+    try { api.setGridVisible(gridVisible); } catch (e) {}
+  }, [gridVisible, ready]);
 
   useImperativeHandle(ref, () => ({
     // Export phía client (PLAN §10). Trả về data/base64.

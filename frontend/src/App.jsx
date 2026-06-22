@@ -24,6 +24,7 @@ export default function App() {
   const [resultMeta, setResultMeta] = useState(null); // {reviewPassed, warnings} cho report
   const [session, setSession] = useState(null);
   const [libRefresh, setLibRefresh] = useState(0);
+  const [gridVisible, setGridVisible] = useState(true); // lưới ô vuông (người dùng tắt được)
   const ggbRef = useRef(null);
 
   // Theo dõi phiên đăng nhập Supabase.
@@ -147,7 +148,15 @@ export default function App() {
 
         {/* Phải: applet GeoGebra + export */}
         <main className="panel right">
-          <GeoGebraView ref={ggbRef} commands={commands} />
+          <label className="grid-toggle">
+            <input
+              type="checkbox"
+              checked={gridVisible}
+              onChange={(e) => setGridVisible(e.target.checked)}
+            />
+            Hiện lưới
+          </label>
+          <GeoGebraView ref={ggbRef} commands={commands} gridVisible={gridVisible} />
           <ExportBar ggbRef={ggbRef} />
           <ReportPanel problem={problem} commands={commands} meta={resultMeta} />
           {commands && (
