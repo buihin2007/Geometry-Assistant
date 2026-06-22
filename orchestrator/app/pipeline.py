@@ -10,6 +10,7 @@ from .agents.planner import Planner
 from .agents.validator import validate
 from .agents.geometry_verify import verify_relations, check_constraints
 from .agents.constraint_repair import repair_distance_constraints
+from .agents.quad_repair import reorder_crossed_quads
 from .agents.orient import apply_orientation
 from .agents.reviewer import Reviewer
 from .primitives.compiler import (
@@ -177,6 +178,16 @@ class Pipeline:
             # --- Render (không tốn LLM) — kèm asserts để kiểm quan hệ đề nêu tên ---
             render = await self.ggb.render(commands, render_formats, checks=asserts)
             self._apply_python_relations(render, asserts)
+
+            # --- Sửa TẤT ĐỊNH thứ tự đỉnh tứ giác bị bắt chéo (gán lại tọa độ 4 nhãn
+            #     theo vòng quanh) — không phụ thuộc planner/LLM. ---
+            rq, qchanged = reorder_crossed_quads(commands, render.get("objects", []))
+            if qchanged:
+                commands = rq
+                res.commands = commands
+                render = await self.ggb.render(commands, render_formats, checks=asserts)
+                self._apply_python_relations(render, asserts)
+                res.log.append(f"[round {round_idx}] sửa thứ tự đỉnh tứ giác (bắt chéo)")
 
             # --- Ràng buộc "sao cho" (bất đẳng thức/thứ tự): verify từ tọa độ; nếu vi
             #     phạm, SỬA CƠ HỌC (tất định) rồi render lại — ưu tiên trước khi tốn LLM. ---

@@ -378,6 +378,22 @@ def _parallelogram(ar, o, aux):
     )
 
 
+def _parallelogram_4th(ar, o, aux):
+    # Dựng ĐIỂM MỚI là đỉnh thứ tư của hình bình hành theo ĐÚNG THỨ TỰ TÊN. Trong thứ
+    # tự vòng, điểm mới NEW nằm giữa 'before' và 'after', đối diện 'opposite':
+    #   …before → NEW → after → opposite…  ⇒  NEW = before + after − opposite
+    # (hai đường chéo cắt nhau tại trung điểm). VD "ABPC hình bình hành, P mới":
+    # before=B, after=C, opposite=A ⇒ P=B+C−A; Polygon(B,P,C,A) = đúng vòng ABPC.
+    P, poly = o[0], o[1]
+    bef, opp, aft = ar["before"], ar["opposite"], ar["after"]
+    return (
+        [f"{P}={bef}+{aft}-{opp}",
+         f"{poly}=Polygon({bef},{P},{aft},{opp})"],
+        [f"AreParallel(Line({bef},{P}),Line({opp},{aft}))",
+         f"AreParallel(Line({P},{aft}),Line({bef},{opp}))"],
+    )
+
+
 def _rectangle(ar, o, aux):
     C, D, poly = o[0], o[1], o[2]
     v = aux()
@@ -839,6 +855,14 @@ reg(Primitive("parallelogram", ["A", "B", "C"], 2, "Hình bình hành ABCD (D=A+
               _parallelogram, [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 5, "y": 0}, ["B"]),
               _s("point_free", {"x": 6, "y": 3}, ["C"]),
               _s("parallelogram", {"A": "A", "B": "B", "C": "C"}, ["D", "poly"])]))
+reg(Primitive("parallelogram_4th", ["before", "opposite", "after"], 2,
+              "ĐIỂM thứ tư của hình bình hành theo ĐÚNG thứ tự tên: điểm mới giữa before&after, "
+              "đối diện opposite (=before+after−opposite) + đa giác đúng vòng",
+              "thêm điểm sao cho 4 đỉnh (theo đúng thứ tự chữ, vd ABPC) là hình bình hành",
+              _parallelogram_4th,
+              [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 6, "y": 0}, ["B"]),
+               _s("point_free", {"x": 2, "y": 4}, ["C"]),
+               _s("parallelogram_4th", {"before": "B", "opposite": "A", "after": "C"}, ["P", "poly"])]))
 reg(Primitive("rectangle", ["A", "B", "h"], 3, "Hình chữ nhật trên cạnh AB cao h", "hình chữ nhật",
               _rectangle, [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 5, "y": 0}, ["B"]),
               _s("rectangle", {"A": "A", "B": "B", "h": 3}, ["C", "D", "poly"])], ["h"]))

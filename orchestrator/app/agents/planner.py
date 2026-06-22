@@ -173,7 +173,12 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   (dựng-đúng-định-nghĩa, KHÔNG tự đoán tọa độ 4 đỉnh; thứ tự A→B→C→D vòng quanh):
   "hình thoi ABCD góc BAD = X°"→rhombus_angle(A,B,angle=X); "hình thoi" KHÔNG cho góc→
   rhombus_centered(p,q) (QUY ƯỚC: tâm O, AC≡Ox, BD≡Oy, A,B kéo được — ƯU TIÊN dùng cái
-  này cho hình thoi thường). "hình bình hành"→parallelogram; "hình
+  này cho hình thoi thường). "hình bình hành"→parallelogram. ★ THÊM ĐIỂM cho 4 đỉnh
+  THEO ĐÚNG THỨ TỰ CHỮ thành hình bình hành (vd "thêm P sao cho ABPC là hbh" — thứ tự
+  vòng A→B→P→C, KHÁC ABCP!): parallelogram_4th(before,opposite,after) với điểm-mới nằm
+  GIỮA before&after và ĐỐI DIỆN opposite theo thứ tự tên. VD ABPC, P mới: before=B,
+  opposite=A, after=C ⇒ P=B+C−A, vẽ đúng vòng; đường chéo ABPC là AP và BC. LUÔN đọc kỹ
+  THỨ TỰ CHỮ CÁI của tên tứ giác để biết đỉnh nào đối nhau. "hình
   chữ nhật"→rectangle; "hình vuông"→square; "hình thang cân"→isosceles_trapezoid(A,B,h,
   lenCD) (AB đáy lớn, chọn lenCD<|AB|); "hình thang" thường→trapezoid; "hình diều / 2 cặp
   cạnh kề bằng, trục là đường chéo AC"→kite(A,C,B); "tứ giác ABCD nội tiếp (O)"→
