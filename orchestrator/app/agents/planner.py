@@ -7,11 +7,11 @@ from ..primitives.menu import build_menu
 # KHÔNG viết lệnh GeoGebra thô; chỉ chọn primitive & nối tham chiếu.
 
 FEWSHOT = """\
-VÍ DỤ 1 — "Vẽ tam giác ABC, kẻ đường cao AH":
+VÍ DỤ 1 — "Vẽ tam giác ABC, kẻ đường cao AH" (BC đáy ngang dưới, A đỉnh trên — quy ước):
 [
- {"op":"point_free","args":{"x":0,"y":0},"out":["A"]},
- {"op":"point_free","args":{"x":6,"y":0},"out":["B"]},
- {"op":"point_free","args":{"x":2,"y":5},"out":["C"]},
+ {"op":"point_free","args":{"x":-3,"y":-2},"out":["B"]},
+ {"op":"point_free","args":{"x":3,"y":-2},"out":["C"]},
+ {"op":"point_free","args":{"x":-1,"y":3},"out":["A"]},
  {"op":"triangle","args":{"A":"A","B":"B","C":"C"},"out":["tri"]},
  {"op":"altitude","args":{"vertex":"A","A":"A","B":"B","C":"C"},"out":["H","AH"]}
 ]
@@ -84,9 +84,9 @@ VÍ DỤ 6 — TỨ GIÁC + đường chéo: DÙNG primitive tứ giác (đỉnh
 là AC và BD. KHÔNG tự đặt 4 điểm tự do rồi Polygon, KHÔNG đặt điểm tên trùng tên tứ giác.
 "Cho hình thang ABCD (AB // CD), hai đường chéo AC và BD cắt nhau tại I."
 [
- {"op":"point_free","args":{"x":0,"y":0},"out":["A"]},
- {"op":"point_free","args":{"x":6,"y":0},"out":["B"]},
- {"op":"point_free","args":{"x":5,"y":3},"out":["C"]},
+ {"op":"point_free","args":{"x":-3,"y":-2},"out":["A"]},
+ {"op":"point_free","args":{"x":3,"y":-2},"out":["B"]},
+ {"op":"point_free","args":{"x":2,"y":2},"out":["C"]},
  {"op":"trapezoid","args":{"A":"A","B":"B","C":"C"},"out":["D","poly"]},
  {"op":"diagonal","args":{"P":"A","Q":"C"},"out":["AC"]},
  {"op":"diagonal","args":{"P":"B","Q":"D"},"out":["BD"]},
@@ -102,8 +102,19 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
 - CHỈ dùng op có trong MENU. KHÔNG viết lệnh GeoGebra thô. KHÔNG bịa op.
 - args: giá trị là TÊN output đã định nghĩa ở bước trước (string) HOẶC số literal
   (x,y,t,r,h,index). out: danh sách tên đối tượng tạo ra (đặt tên theo đề: A,B,C,O,M...).
-- Đặt điểm gốc bằng point_free với tọa độ "đẹp", cân đối, tam giác không suy biến
-  (vd A=(0,0), B=(6,0), C=(2,5)). Điểm phụ thuộc để primitive tự tính, KHÔNG tự đoán.
+- Điểm phụ thuộc để primitive tự tính, KHÔNG tự đoán tọa độ.
+- ★ QUY ƯỚC ĐẶT HÌNH (đặt tọa độ point_free theo các quy ước sau để hình "đúng kiểu",
+  cân đối; điểm phụ thuộc tự đi theo):
+  • TỔNG QUÁT: đoạn/cạnh đáy/DÂY cung ĐẦU TIÊN đặt NẰM NGANG (∥ Ox, hai đầu cùng y),
+    ĐỐI XỨNG qua Oy (x đối nhau: -a và a), và y ÂM. VD đáy/ dây: (-3,-2) và (3,-2).
+  • TAM GIÁC ABC: BC là ĐÁY ngang dưới (B=(-3,-2), C=(3,-2)); A là ĐỈNH ở TRÊN, y dương
+    (vd A=(-1,3) cho cân/lệch tùy đề; cân tại A thì A=(0,3) trên Oy). KHÔNG đặt A ở đáy.
+  • ĐƯỜNG TRÒN có DÂY/CUNG BC: tâm O=(0,0); B,C đối xứng qua Oy và NẰM DƯỚI O (y âm),
+    cách O vừa phải để BC không quá ngắn (vd trên đường tròn bán kính ~5 thì B,C khoảng
+    y=-4). Đường kính ⊥ BC sẽ nằm dọc Oy.
+  • HÌNH THOI ABCD: dùng primitive đặt TÂM tại O, đường chéo AC ≡ Ox, BD ≡ Oy
+    (xem menu: nếu có rhombus theo trục thì ưu tiên).
+  • Tránh tọa độ làm hình suy biến/thẳng hàng.
 - Quy tắc chọn: "điểm trên đoạn/tia có vị trí"→point_on_segment/point_on_ray_beyond;
   "lấy điểm trên..." không vị trí→point_on_object/point_on_circle; "tiếp tuyến từ điểm
   ngoài"→tangent_from_point; "tiếp tuyến tại điểm trên đường tròn"→tangent_at_point;
@@ -155,8 +166,9 @@ mỗi bước gọi MỘT primitive trong MENU dưới đây. TUYỆT ĐỐI:
   (nối đỉnh ĐỐI), KHÔNG bao giờ là AD hay BC (đó là cạnh). Vẽ chéo:
   diagonal(P=A,Q=C) và diagonal(P=B,Q=D).
   (dựng-đúng-định-nghĩa, KHÔNG tự đoán tọa độ 4 đỉnh; thứ tự A→B→C→D vòng quanh):
-  "hình thoi ABCD góc BAD = X°"→rhombus_angle(A,B,angle=X); "hình thoi" không cho góc→
-  rhombus(A,B,P) (P là điểm hướng đỉnh thứ ba). "hình bình hành"→parallelogram; "hình
+  "hình thoi ABCD góc BAD = X°"→rhombus_angle(A,B,angle=X); "hình thoi" KHÔNG cho góc→
+  rhombus_centered(p,q) (QUY ƯỚC: tâm O, AC≡Ox, BD≡Oy, A,B kéo được — ƯU TIÊN dùng cái
+  này cho hình thoi thường). "hình bình hành"→parallelogram; "hình
   chữ nhật"→rectangle; "hình vuông"→square; "hình thang cân"→isosceles_trapezoid(A,B,h,
   lenCD) (AB đáy lớn, chọn lenCD<|AB|); "hình thang" thường→trapezoid; "hình diều / 2 cặp
   cạnh kề bằng, trục là đường chéo AC"→kite(A,C,B); "tứ giác ABCD nội tiếp (O)"→

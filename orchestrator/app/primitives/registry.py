@@ -586,6 +586,21 @@ def _rotate(ar, o, aux):
     return [f"{o[0]}=Rotate({ar['obj']},{ar['angle']}°,{ar['center']})"], []
 
 
+def _rhombus_centered(ar, o, aux):
+    # Hình thoi ABCD theo QUY ƯỚC: tâm tại O, đường chéo AC ≡ Ox (A=(p,0),C=(-p,0)),
+    # BD ≡ Oy (B=(0,q),D=(0,-q)). A,B là điểm TỰ DO (kéo được); C,D đối xứng qua O nên
+    # tâm luôn ở O. p,q = nửa độ dài hai đường chéo. VERIFIED: 4 cạnh bằng, AC⊥BD.
+    A, B, C, D, poly = o[0], o[1], o[2], o[3], o[4]
+    return (
+        [f"{A}=({ar['p']},0)", f"{B}=(0,{ar['q']})",
+         f"{C}=Reflect({A},(0,0))", f"{D}=Reflect({B},(0,0))",
+         f"{poly}=Polygon({A},{B},{C},{D})"],
+        [f"AreEqual(Distance({A},{B}),Distance({B},{C}))",
+         f"AreEqual(Distance({A},{B}),Distance({C},{D}))",
+         f"AreEqual(Distance({A},{B}),Distance({D},{A}))"],
+    )
+
+
 # ───────────────────────── Bảng đăng ký ─────────────────────────
 def _t(*stmts):
     return list(stmts)
@@ -947,3 +962,10 @@ reg(Primitive("rotate", ["obj", "center", "angle"], 1,
               [_s("point_free", {"x": 0, "y": 0}, ["A"]), _s("point_free", {"x": 3, "y": 0}, ["B"]),
                _s("segment", {"A": "A", "B": "B"}, ["s"]),
                _s("rotate", {"obj": "s", "center": "A", "angle": 90}, ["s2"])], ["angle"]))
+reg(Primitive("rhombus_centered", ["p", "q"], 5,
+              "Hình thoi ABCD QUY ƯỚC: tâm O, chéo AC≡Ox (nửa chéo p), BD≡Oy (nửa chéo q); "
+              "A,B kéo được. Trả A,B,C,D + đa giác",
+              "hình thoi ABCD không cho góc cụ thể (đặt theo quy ước tâm O, hai chéo trên trục)",
+              _rhombus_centered,
+              [_s("rhombus_centered", {"p": 4, "q": 2.5}, ["A", "B", "C", "D", "poly"])],
+              ["p", "q"]))
